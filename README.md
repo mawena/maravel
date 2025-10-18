@@ -7,7 +7,7 @@ Une librairie Laravel avancée qui fournit un contrôleur API générique avec s
 ### Via Composer
 
 ```bash
-composer require mawena/laravel-advanced-api-controller
+composer require mawena/maravel
 ```
 
 ### Configuration

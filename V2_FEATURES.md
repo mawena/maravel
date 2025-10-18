@@ -148,7 +148,7 @@ use LaravelAdvancedApiController\Http\Controllers\APIController;
 ```json
 {
     "require": {
-        "mawena/laravel-advanced-api-controller": "^2.0"
+        "mawena/maravel": "^2.0"
     }
 }
 ```

@@ -15,7 +15,7 @@ Ce guide vous explique comment publier votre librairie Laravel sur Packagist pou
 
 1. Allez sur [GitHub](https://github.com) et connectez-vous
 2. Cliquez sur le bouton **"New repository"** (ou `+` en haut à droite → New repository)
-3. Nommez le dépôt : `laravel-advanced-api-controller`
+3. Nommez le dépôt : `maravel`
 4. Description : "Librairie Laravel avancée pour APIController avec système de permissions, modèles enrichis et policies automatiques"
 5. Choisissez **Public** (obligatoire pour Packagist gratuit)
 6. **Ne cochez pas** "Initialize this repository with a README" (on a déjà les fichiers)
@@ -35,7 +35,7 @@ git add .
 git commit -m "Initial commit - Laravel Advanced API Controller v2"
 
 # Ajouter le remote (remplacer USERNAME par votre nom d'utilisateur GitHub)
-git remote add origin https://github.com/mawena/laravel-advanced-api-controller.git
+git remote add origin https://github.com/mawena/maravel.git
 
 # Créer la branche main
 git branch -M main
@@ -61,7 +61,7 @@ git push origin v2.0.0
 1. Allez sur [Packagist.org](https://packagist.org)
 2. Cliquez sur **"Sign in with GitHub"** (recommandé) ou créez un compte
 3. Une fois connecté, cliquez sur **"Submit"** en haut à droite
-4. Entrez l'URL de votre dépôt GitHub : `https://github.com/mawena/laravel-advanced-api-controller`
+4. Entrez l'URL de votre dépôt GitHub : `https://github.com/mawena/maravel`
 5. Cliquez sur **"Check"** puis **"Submit"**
 
 ### 5. Configurer les mises à jour automatiques (optionnel mais recommandé)
@@ -82,7 +82,7 @@ Pour que Packagist se mette à jour automatiquement à chaque push :
 Une fois publiée, n'importe qui pourra installer votre librairie avec :
 
 ```bash
-composer require mawena/laravel-advanced-api-controller
+composer require mawena/maravel
 ```
 
 ## Publier une nouvelle version
@@ -121,9 +121,9 @@ Exemples :
 Vous pouvez ajouter des badges dans votre README.md :
 
 ```markdown
-[![Latest Stable Version](https://poser.pugx.org/mawena/laravel-advanced-api-controller/v)](//packagist.org/packages/mawena/laravel-advanced-api-controller)
-[![Total Downloads](https://poser.pugx.org/mawena/laravel-advanced-api-controller/downloads)](//packagist.org/packages/mawena/laravel-advanced-api-controller)
-[![License](https://poser.pugx.org/mawena/laravel-advanced-api-controller/license)](//packagist.org/packages/mawena/laravel-advanced-api-controller)
+[![Latest Stable Version](https://poser.pugx.org/mawena/maravel/v)](//packagist.org/packages/mawena/maravel)
+[![Total Downloads](https://poser.pugx.org/mawena/maravel/downloads)](//packagist.org/packages/mawena/maravel)
+[![License](https://poser.pugx.org/mawena/maravel/license)](//packagist.org/packages/mawena/maravel)
 ```
 
 ## Commandes rapides (script shell)

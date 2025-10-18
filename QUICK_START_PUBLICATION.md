@@ -15,7 +15,7 @@ Votre librairie est prête à être publiée ! Suivez ces étapes simples :
 
 ```bash
 # Allez sur https://github.com/new
-# - Repository name: laravel-advanced-api-controller
+# - Repository name: maravel
 # - Description: Librairie Laravel avancée pour APIController avec système de permissions
 # - Public ✅
 # - NE PAS cocher "Add a README file"
@@ -29,7 +29,7 @@ Après avoir créé le dépôt, exécutez ces commandes :
 cd /var/www/html/Projects/Claude/maravel
 
 # Remplacer 'mawena' par votre nom d'utilisateur GitHub si différent
-git remote add origin https://github.com/mawena/laravel-advanced-api-controller.git
+git remote add origin https://github.com/mawena/maravel.git
 
 git branch -M main
 
@@ -48,7 +48,7 @@ git push origin v2.0.0
 1. Allez sur https://packagist.org
 2. Cliquez sur **"Sign in with GitHub"**
 3. Cliquez sur **"Submit"** (en haut à droite)
-4. Entrez l'URL : `https://github.com/mawena/laravel-advanced-api-controller`
+4. Entrez l'URL : `https://github.com/mawena/maravel`
 5. Cliquez sur **"Check"** puis **"Submit"**
 
 ### 5️⃣ Configurer les mises à jour automatiques (optionnel)
@@ -70,7 +70,7 @@ git push origin v2.0.0
 Votre librairie est maintenant disponible publiquement. N'importe qui peut l'installer avec :
 
 ```bash
-composer require mawena/laravel-advanced-api-controller
+composer require mawena/maravel
 ```
 
 ## 🔄 Pour publier une nouvelle version

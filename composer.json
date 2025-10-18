@@ -1,0 +1,60 @@
+{
+	"name": "mawena/laravel-advanced-api-controller",
+	"description": "Librairie Laravel avancée pour APIController avec système de permissions, modèles enrichis et policies automatiques",
+	"type": "library",
+	"keywords": [
+		"laravel",
+		"api",
+		"controller",
+		"traits",
+		"crud",
+		"permissions",
+		"policies",
+		"models",
+		"advanced"
+	],
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Mawena",
+			"email": "mawena@example.com"
+		}
+	],
+	"homepage": "https://github.com/mawena/laravel-advanced-api-controller",
+	"support": {
+		"issues": "https://github.com/mawena/laravel-advanced-api-controller/issues",
+		"source": "https://github.com/mawena/laravel-advanced-api-controller"
+	},
+	"require": {
+		"php": "^8.1",
+		"illuminate/support": "^10.0|^11.0",
+		"illuminate/database": "^10.0|^11.0",
+		"illuminate/http": "^10.0|^11.0",
+		"illuminate/routing": "^10.0|^11.0",
+		"illuminate/validation": "^10.0|^11.0",
+		"illuminate/foundation": "^10.0|^11.0"
+	},
+	"require-dev": {
+		"phpunit/phpunit": "^10.0",
+		"orchestra/testbench": "^8.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"LaravelAdvancedApiController\\": "src/"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"LaravelAdvancedApiController\\Tests\\": "tests/"
+		}
+	},
+	"extra": {
+		"laravel": {
+			"providers": [
+				"LaravelAdvancedApiController\\Providers\\AdvancedApiControllerServiceProvider"
+			]
+		}
+	},
+	"minimum-stability": "stable",
+	"prefer-stable": true
+}

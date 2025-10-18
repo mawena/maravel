@@ -1,0 +1,125 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Auth\Access\Response;
+use {{ namespacedUserModel }};
+use LaravelAdvancedApiController\Policies\BasePolicy;
+
+/**
+ * Policy avancée pour {{ class }}
+ * 
+ * Cette policy utilise le système de permissions avancé
+ * avec support des profils utilisateur et règles d'abilités.
+ */
+class {{ class }} extends BasePolicy
+{
+    /**
+     * Nom du modèle pour les permissions
+     */
+    protected $modelName = "{{ modelLower }}";
+    
+    /**
+     * Vérifications personnalisées pour viewAny
+     * 
+     * @param {{ user }} $user
+     * @return Response
+     */
+    public function viewAny({{ user }} $user)
+    {
+        // Logique personnalisée si nécessaire
+        return parent::viewAny($user);
+    }
+    
+    /**
+     * Vérifications personnalisées pour view
+     * 
+     * @param {{ user }} $user
+     * @param \App\Models\{{ model }} ${{ modelVariable }}
+     * @return Response
+     */
+    public function view({{ user }} $user, \App\Models\{{ model }} ${{ modelVariable }})
+    {
+        // Logique personnalisée si nécessaire
+        // Exemple : vérifier que l'utilisateur peut voir ses propres données
+        // if (${{ modelVariable }}->user_id !== $user->id && !$this->isAdmin($user)) {
+        //     return Response::deny('Vous ne pouvez voir que vos propres données');
+        // }
+        
+        return parent::view($user, ${{ modelVariable }});
+    }
+    
+    /**
+     * Vérifications personnalisées pour create
+     * 
+     * @param {{ user }} $user
+     * @return Response
+     */
+    public function create({{ user }} $user)
+    {
+        // Logique personnalisée si nécessaire
+        return parent::create($user);
+    }
+    
+    /**
+     * Vérifications personnalisées pour update
+     * 
+     * @param {{ user }} $user
+     * @param \App\Models\{{ model }} ${{ modelVariable }}
+     * @return Response
+     */
+    public function update({{ user }} $user, \App\Models\{{ model }} ${{ modelVariable }})
+    {
+        // Logique personnalisée si nécessaire
+        // Exemple : vérifier que l'utilisateur peut modifier ses propres données
+        // if (${{ modelVariable }}->user_id !== $user->id && !$this->isAdmin($user)) {
+        //     return Response::deny('Vous ne pouvez modifier que vos propres données');
+        // }
+        
+        return parent::update($user, ${{ modelVariable }});
+    }
+    
+    /**
+     * Vérifications personnalisées pour delete
+     * 
+     * @param {{ user }} $user
+     * @param \App\Models\{{ model }} ${{ modelVariable }}
+     * @return Response
+     */
+    public function delete({{ user }} $user, \App\Models\{{ model }} ${{ modelVariable }})
+    {
+        // Logique personnalisée si nécessaire
+        // Exemple : vérifier que l'utilisateur peut supprimer ses propres données
+        // if (${{ modelVariable }}->user_id !== $user->id && !$this->isAdmin($user)) {
+        //     return Response::deny('Vous ne pouvez supprimer que vos propres données');
+        // }
+        
+        return parent::delete($user, ${{ modelVariable }});
+    }
+    
+    /**
+     * Vérifications personnalisées pour restore
+     * 
+     * @param {{ user }} $user
+     * @param \App\Models\{{ model }} ${{ modelVariable }}
+     * @return Response
+     */
+    public function restore({{ user }} $user, \App\Models\{{ model }} ${{ modelVariable }})
+    {
+        // Logique personnalisée si nécessaire
+        return parent::restore($user, ${{ modelVariable }});
+    }
+    
+    /**
+     * Vérifications personnalisées pour forceDelete
+     * 
+     * @param {{ user }} $user
+     * @param \App\Models\{{ model }} ${{ modelVariable }}
+     * @return Response
+     */
+    public function forceDelete({{ user }} $user, \App\Models\{{ model }} ${{ modelVariable }})
+    {
+        // Logique personnalisée si nécessaire
+        return parent::forceDelete($user, ${{ modelVariable }});
+    }
+}

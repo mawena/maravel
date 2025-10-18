@@ -34,3 +34,4 @@ class AdvancedApiControllerServiceProvider extends ServiceProvider
 		}
 	}
 }
+

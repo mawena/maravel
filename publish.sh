@@ -94,6 +94,6 @@ echo "   2. Si vous avez configuré le webhook Packagist, la mise à jour sera a
 echo "   3. Sinon, connectez-vous sur Packagist.org et cliquez sur 'Update' dans votre package"
 echo ""
 echo -e "${GREEN}🎉 Votre package peut maintenant être installé avec:${NC}"
-echo -e "${YELLOW}   composer require mawena/laravel-advanced-api-controller:^${VERSION}${NC}"
+echo -e "${YELLOW}   composer require mawena/maravel:^${VERSION}${NC}"
 echo ""
 

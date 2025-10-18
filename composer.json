@@ -1,5 +1,5 @@
 {
-	"name": "mawena/laravel-advanced-api-controller",
+	"name": "mawena/maravel",
 	"description": "Librairie Laravel avancée pour APIController avec système de permissions, modèles enrichis et policies automatiques",
 	"type": "library",
 	"keywords": [
@@ -17,13 +17,13 @@
 	"authors": [
 		{
 			"name": "Mawena",
-			"email": "mawena@example.com"
+			"email": "gamligocharles@gmail.com"
 		}
 	],
-	"homepage": "https://github.com/mawena/laravel-advanced-api-controller",
+	"homepage": "https://github.com/mawena/maravel",
 	"support": {
-		"issues": "https://github.com/mawena/laravel-advanced-api-controller/issues",
-		"source": "https://github.com/mawena/laravel-advanced-api-controller"
+		"issues": "https://github.com/mawena/maravel/issues",
+		"source": "https://github.com/mawena/maravel"
 	},
 	"require": {
 		"php": "^8.1",

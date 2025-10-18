@@ -35,7 +35,7 @@ cd "$PROJECT_PATH"
 echo "📦 Installation via Composer..."
 
 # Installer la librairie via Composer
-composer require mawena/laravel-api-controller
+composer require mawena/maravel
 
 if [ $? -eq 0 ]; then
     echo "✅ Librairie installée avec succès"

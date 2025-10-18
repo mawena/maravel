@@ -26,7 +26,7 @@ Votre librairie est prête à être publiée ! Suivez ces étapes simples :
 Après avoir créé le dépôt, exécutez ces commandes :
 
 ```bash
-cd /var/www/html/Projects/Claude/laravel-api-controller-lib
+cd /var/www/html/Projects/Claude/maravel
 
 # Remplacer 'mawena' par votre nom d'utilisateur GitHub si différent
 git remote add origin https://github.com/mawena/laravel-advanced-api-controller.git

@@ -26,7 +26,7 @@ Ce guide vous explique comment publier votre librairie Laravel sur Packagist pou
 Une fois le dépôt créé, GitHub vous donne des commandes. Exécutez celles-ci :
 
 ```bash
-cd /var/www/html/Projects/Claude/laravel-api-controller-lib
+cd /var/www/html/Projects/Claude/maravel
 
 # Ajouter tous les fichiers
 git add .

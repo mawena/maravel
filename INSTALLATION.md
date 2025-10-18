@@ -11,7 +11,7 @@
 ### 1. Installation via Composer
 
 ```bash
-composer require mawena/laravel-api-controller
+composer require mawena/maravel
 ```
 
 ### 2. Publication de la configuration (optionnel)
@@ -166,7 +166,7 @@ Pour toute question ou problème :
 Pour mettre à jour la librairie :
 
 ```bash
-composer update mawena/laravel-api-controller
+composer update mawena/maravel
 ```
 
 Vérifiez le fichier CHANGELOG.md pour les changements entre les versions.

@@ -33,10 +33,60 @@ php artisan vendor:publish --provider="LaravelAdvancedApiController\\Providers\\
 - Méthodes utilitaires pour les statistiques
 
 ### 🛠️ Outils de développement
-- **Commande personnalisée** : `php artisan make:advanced-policy`
-- **Génération automatique** des policies
+- **Commandes personnalisées** : 
+  - `php artisan make:controller` (version avancée)
+  - `php artisan make:policy` (version avancée)
+  - `php artisan make:advanced-controller`
+  - `php artisan make:advanced-policy`
+- **Génération automatique** des contrôleurs et policies
 - **Configuration avancée** via fichier de config
-- **Stubs personnalisés** pour les policies
+- **Stubs personnalisés** pour les contrôleurs et policies
+
+## Commandes Artisan Disponibles
+
+### Commandes Standard (Recommandées)
+
+#### `make:controller`
+Remplace la commande standard Laravel avec des fonctionnalités avancées :
+
+```bash
+php artisan make:controller ProductController
+```
+
+Génère un contrôleur API complet avec :
+- Méthodes CRUD automatiques
+- Gestion des relations
+- Système de validation avancé
+- Documentation API intégrée
+
+#### `make:policy`
+Remplace la commande standard Laravel avec des fonctionnalités avancées :
+
+```bash
+php artisan make:policy ProductPolicy
+```
+
+Génère une policy complète avec :
+- Méthodes de permissions CRUD
+- Vérifications personnalisables
+- Support des profils utilisateur
+- Système d'abilités avancé
+
+### Commandes Avancées
+
+#### `make:advanced-controller`
+Génère un contrôleur avec toutes les fonctionnalités avancées :
+
+```bash
+php artisan make:advanced-controller ProductController
+```
+
+#### `make:advanced-policy`
+Génère une policy avec toutes les fonctionnalités avancées :
+
+```bash
+php artisan make:advanced-policy ProductPolicy
+```
 
 ## Utilisation
 
@@ -176,9 +226,13 @@ class User extends ModelBase
 
 ### 3. Créer une policy avancée
 
-Utilisez la commande personnalisée :
+Utilisez les commandes personnalisées :
 
 ```bash
+# Version standard (recommandée)
+php artisan make:policy UserPolicy
+
+# Version avancée
 php artisan make:advanced-policy UserPolicy
 ```
 

@@ -7,22 +7,22 @@ use Illuminate\Support\Str;
 use Symfony\Component\Console\Input\InputArgument;
 
 /**
- * Commande pour créer des policies avancées
+ * Commande pour créer des policies avec le nom standard Laravel
  * 
- * Cette commande génère des policies qui étendent BasePolicy
- * avec un système de permissions avancé.
+ * Cette commande remplace la commande make:policy standard de Laravel
+ * et génère des policies qui étendent BasePolicy avec un système de permissions avancé.
  */
-class MakeAdvancedPolicy extends GeneratorCommand
+class MakePolicy extends GeneratorCommand
 {
 	/**
 	 * Le nom et la signature de la commande
 	 */
-	protected $name = 'make:advanced-policy';
+	protected $name = 'make:policy';
 
 	/**
 	 * La description de la commande
 	 */
-	protected $description = 'Créer une policy avancée avec BasePolicy et système de permissions';
+	protected $description = 'Créer une policy avec BasePolicy et système de permissions avancé';
 
 	/**
 	 * Le type de classe générée

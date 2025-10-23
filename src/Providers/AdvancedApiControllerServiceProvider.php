@@ -5,6 +5,9 @@ namespace LaravelAdvancedApiController\Providers;
 use Illuminate\Support\ServiceProvider;
 use LaravelAdvancedApiController\Http\Controllers\APIController;
 use LaravelAdvancedApiController\Console\Commands\MakeAdvancedPolicy;
+use LaravelAdvancedApiController\Console\Commands\MakeAdvancedController;
+use LaravelAdvancedApiController\Console\Commands\MakePolicy;
+use LaravelAdvancedApiController\Console\Commands\MakeController;
 
 class AdvancedApiControllerServiceProvider extends ServiceProvider
 {
@@ -30,8 +33,14 @@ class AdvancedApiControllerServiceProvider extends ServiceProvider
 			// Enregistrement des commandes personnalisées
 			$this->commands([
 				MakeAdvancedPolicy::class,
+				MakeAdvancedController::class,
+				MakePolicy::class,
+				MakeController::class,
 			]);
 		}
 	}
 }
+
+
+
 

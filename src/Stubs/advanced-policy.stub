@@ -21,105 +21,105 @@ class {{ class }} extends BasePolicy
     
     /**
      * Vérifications personnalisées pour viewAny
-     * 
-     * @param {{ user }} $user
+     *
+     * @param object $connectedUser Utilisateur connecté
      * @return Response
      */
-    public function viewAny({{ user }} $user)
+    public function viewAny($connectedUser)
     {
         // Logique personnalisée si nécessaire
-        return parent::viewAny($user);
+        return parent::viewAny($connectedUser);
     }
-    
+
     /**
      * Vérifications personnalisées pour view
-     * 
-     * @param {{ user }} $user
-     * @param \App\Models\{{ model }} ${{ modelVariable }}
+     *
+     * @param object $connectedUser Utilisateur connecté
+     * @param \App\Models\{{ model }} $model Modèle à vérifier
      * @return Response
      */
-    public function view({{ user }} $user, \App\Models\{{ model }} ${{ modelVariable }})
+    public function view($connectedUser, \App\Models\{{ model }} $model)
     {
         // Logique personnalisée si nécessaire
         // Exemple : vérifier que l'utilisateur peut voir ses propres données
-        // if (${{ modelVariable }}->user_id !== $user->id && !$this->isAdmin($user)) {
+        // if ($model->user_id !== $connectedUser->id && !$this->isAdmin($connectedUser)) {
         //     return Response::deny('Vous ne pouvez voir que vos propres données');
         // }
-        
-        return parent::view($user, ${{ modelVariable }});
+
+        return parent::view($connectedUser, $model);
     }
-    
+
     /**
      * Vérifications personnalisées pour create
-     * 
-     * @param {{ user }} $user
+     *
+     * @param object $connectedUser Utilisateur connecté
      * @return Response
      */
-    public function create({{ user }} $user)
+    public function create($connectedUser)
     {
         // Logique personnalisée si nécessaire
-        return parent::create($user);
+        return parent::create($connectedUser);
     }
-    
+
     /**
      * Vérifications personnalisées pour update
-     * 
-     * @param {{ user }} $user
-     * @param \App\Models\{{ model }} ${{ modelVariable }}
+     *
+     * @param object $connectedUser Utilisateur connecté
+     * @param \App\Models\{{ model }} $model Modèle à vérifier
      * @return Response
      */
-    public function update({{ user }} $user, \App\Models\{{ model }} ${{ modelVariable }})
+    public function update($connectedUser, \App\Models\{{ model }} $model)
     {
         // Logique personnalisée si nécessaire
         // Exemple : vérifier que l'utilisateur peut modifier ses propres données
-        // if (${{ modelVariable }}->user_id !== $user->id && !$this->isAdmin($user)) {
+        // if ($model->user_id !== $connectedUser->id && !$this->isAdmin($connectedUser)) {
         //     return Response::deny('Vous ne pouvez modifier que vos propres données');
         // }
-        
-        return parent::update($user, ${{ modelVariable }});
+
+        return parent::update($connectedUser, $model);
     }
-    
+
     /**
      * Vérifications personnalisées pour delete
-     * 
-     * @param {{ user }} $user
-     * @param \App\Models\{{ model }} ${{ modelVariable }}
+     *
+     * @param object $connectedUser Utilisateur connecté
+     * @param \App\Models\{{ model }} $model Modèle à vérifier
      * @return Response
      */
-    public function delete({{ user }} $user, \App\Models\{{ model }} ${{ modelVariable }})
+    public function delete($connectedUser, \App\Models\{{ model }} $model)
     {
         // Logique personnalisée si nécessaire
         // Exemple : vérifier que l'utilisateur peut supprimer ses propres données
-        // if (${{ modelVariable }}->user_id !== $user->id && !$this->isAdmin($user)) {
+        // if ($model->user_id !== $connectedUser->id && !$this->isAdmin($connectedUser)) {
         //     return Response::deny('Vous ne pouvez supprimer que vos propres données');
         // }
-        
-        return parent::delete($user, ${{ modelVariable }});
+
+        return parent::delete($connectedUser, $model);
     }
-    
+
     /**
      * Vérifications personnalisées pour restore
-     * 
-     * @param {{ user }} $user
-     * @param \App\Models\{{ model }} ${{ modelVariable }}
+     *
+     * @param object $connectedUser Utilisateur connecté
+     * @param \App\Models\{{ model }} $model Modèle à vérifier
      * @return Response
      */
-    public function restore({{ user }} $user, \App\Models\{{ model }} ${{ modelVariable }})
+    public function restore($connectedUser, \App\Models\{{ model }} $model)
     {
         // Logique personnalisée si nécessaire
-        return parent::restore($user, ${{ modelVariable }});
+        return parent::restore($connectedUser, $model);
     }
-    
+
     /**
      * Vérifications personnalisées pour forceDelete
-     * 
-     * @param {{ user }} $user
-     * @param \App\Models\{{ model }} ${{ modelVariable }}
+     *
+     * @param object $connectedUser Utilisateur connecté
+     * @param \App\Models\{{ model }} $model Modèle à vérifier
      * @return Response
      */
-    public function forceDelete({{ user }} $user, \App\Models\{{ model }} ${{ modelVariable }})
+    public function forceDelete($connectedUser, \App\Models\{{ model }} $model)
     {
         // Logique personnalisée si nécessaire
-        return parent::forceDelete($user, ${{ modelVariable }});
+        return parent::forceDelete($connectedUser, $model);
     }
 }

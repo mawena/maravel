@@ -3,7 +3,7 @@
 namespace {{ namespace }};
 
 use Illuminate\Auth\Access\Response;
-use {{ namespacedUserModel }};
+use Illuminate\Database\Eloquent\Model;
 use LaravelAdvancedApiController\Policies\BasePolicy;
 
 /**
@@ -35,10 +35,10 @@ class {{ class }} extends BasePolicy
      * Vérifications personnalisées pour view
      *
      * @param object $connectedUser Utilisateur connecté
-     * @param \App\Models\{{ model }} $model Modèle à vérifier
+     * @param Model $model Modèle à vérifier
      * @return Response
      */
-    public function view($connectedUser, \App\Models\{{ model }} $model)
+    public function view($connectedUser, Model $model)
     {
         // Logique personnalisée si nécessaire
         // Exemple : vérifier que l'utilisateur peut voir ses propres données
@@ -65,10 +65,10 @@ class {{ class }} extends BasePolicy
      * Vérifications personnalisées pour update
      *
      * @param object $connectedUser Utilisateur connecté
-     * @param \App\Models\{{ model }} $model Modèle à vérifier
+     * @param Model $model Modèle à vérifier
      * @return Response
      */
-    public function update($connectedUser, \App\Models\{{ model }} $model)
+    public function update($connectedUser, Model $model)
     {
         // Logique personnalisée si nécessaire
         // Exemple : vérifier que l'utilisateur peut modifier ses propres données
@@ -83,10 +83,10 @@ class {{ class }} extends BasePolicy
      * Vérifications personnalisées pour delete
      *
      * @param object $connectedUser Utilisateur connecté
-     * @param \App\Models\{{ model }} $model Modèle à vérifier
+     * @param Model $model Modèle à vérifier
      * @return Response
      */
-    public function delete($connectedUser, \App\Models\{{ model }} $model)
+    public function delete($connectedUser, Model $model)
     {
         // Logique personnalisée si nécessaire
         // Exemple : vérifier que l'utilisateur peut supprimer ses propres données
@@ -101,10 +101,10 @@ class {{ class }} extends BasePolicy
      * Vérifications personnalisées pour restore
      *
      * @param object $connectedUser Utilisateur connecté
-     * @param \App\Models\{{ model }} $model Modèle à vérifier
+     * @param Model $model Modèle à vérifier
      * @return Response
      */
-    public function restore($connectedUser, \App\Models\{{ model }} $model)
+    public function restore($connectedUser, Model $model)
     {
         // Logique personnalisée si nécessaire
         return parent::restore($connectedUser, $model);
@@ -114,10 +114,10 @@ class {{ class }} extends BasePolicy
      * Vérifications personnalisées pour forceDelete
      *
      * @param object $connectedUser Utilisateur connecté
-     * @param \App\Models\{{ model }} $model Modèle à vérifier
+     * @param Model $model Modèle à vérifier
      * @return Response
      */
-    public function forceDelete($connectedUser, \App\Models\{{ model }} $model)
+    public function forceDelete($connectedUser, Model $model)
     {
         // Logique personnalisée si nécessaire
         return parent::forceDelete($connectedUser, $model);

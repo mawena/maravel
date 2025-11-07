@@ -65,12 +65,33 @@ class MakePolicy extends GeneratorCommand
 
 		$className = class_basename($name);
 		$lowerName = strtolower($className);
-		$baseName = Str::replaceLast('Policy', '', $className);
-		$modelLower = strtolower($baseName);
+
+		// Extraire le nom du modèle (enlever "Policy" à la fin)
+		$modelName = Str::replaceLast('Policy', '', $className);
+		$modelLower = strtolower($modelName);
+
+		// Variable camelCase pour le modèle (ex: UserProfile -> userProfile)
+		// Note: le stub contient déjà le $ devant {{ modelVariable }}
+		$modelVariable = Str::camel($modelName);
+
+		// Nom de classe User (par défaut)
+		$userClass = 'User';
 
 		return str_replace(
-			['{{ modelLower }}', '{{ lowerClass }}'],
-			[$modelLower, $lowerName],
+			[
+				'{{ modelLower }}',
+				'{{ lowerClass }}',
+				'{{ model }}',
+				'{{ modelVariable }}',
+				'{{ user }}',
+			],
+			[
+				$modelLower,
+				$lowerName,
+				$modelName,
+				$modelVariable,
+				$userClass,
+			],
 			$stub
 		);
 	}

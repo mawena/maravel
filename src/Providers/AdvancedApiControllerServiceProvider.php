@@ -1,12 +1,12 @@
 <?php
 
-namespace LaravelAdvancedApiController\Providers;
+namespace Maravel\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use LaravelAdvancedApiController\Http\Controllers\APIController;
-use LaravelAdvancedApiController\Console\Commands\MakeController;
-use LaravelAdvancedApiController\Console\Commands\MakeModel;
-use LaravelAdvancedApiController\Console\Commands\MakePolicy;
+use Maravel\Http\Controllers\APIController;
+use Maravel\Console\Commands\MakeController;
+use Maravel\Console\Commands\MakeModel;
+use Maravel\Console\Commands\MakePolicy;
 
 class AdvancedApiControllerServiceProvider extends ServiceProvider
 {

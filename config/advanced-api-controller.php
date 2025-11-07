@@ -120,7 +120,7 @@ return [
 	'policies' => [
 		'auto_register' => true,
 		'namespace' => 'App\\Policies',
-		'stub_path' => 'LaravelAdvancedApiController\\Stubs\\advanced-policy.stub',
+		'stub_path' => 'Maravel\\Stubs\\advanced-policy.stub',
 		'default_permissions' => [
 			'admin' => ['manage'],
 			'user' => ['read', 'create', 'update', 'delete'],

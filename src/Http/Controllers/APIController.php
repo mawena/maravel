@@ -1,11 +1,11 @@
 <?php
 
-namespace LaravelAdvancedApiController\Http\Controllers;
+namespace Maravel\Http\Controllers;
 
-use LaravelAdvancedApiController\Http\Traits\ControllerHelperTrait;
-use LaravelAdvancedApiController\Http\Traits\CustomResponseTrait;
-use LaravelAdvancedApiController\Http\Traits\ScriptGeneratorTrait;
-use LaravelAdvancedApiController\Http\Traits\PermissionCheckerTrait;
+use Maravel\Http\Traits\ControllerHelperTrait;
+use Maravel\Http\Traits\CustomResponseTrait;
+use Maravel\Http\Traits\ScriptGeneratorTrait;
+use Maravel\Http\Traits\PermissionCheckerTrait;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Http\Request;

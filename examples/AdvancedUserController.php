@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\API;
 
-use LaravelAdvancedApiController\Http\Controllers\APIController;
+use Maravel\Http\Controllers\APIController;
 use App\Models\User;
 use Illuminate\Support\Str;
 

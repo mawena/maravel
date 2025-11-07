@@ -94,7 +94,7 @@ Le service provider sera automatiquement enregistré grâce à l'auto-discovery 
 Pour personnaliser la configuration, publiez le fichier de configuration :
 
 ```bash
-php artisan vendor:publish --provider="LaravelAdvancedApiController\Providers\AdvancedApiControllerServiceProvider" --tag="advanced-api-controller-config"
+php artisan vendor:publish --provider="Maravel\Providers\AdvancedApiControllerServiceProvider" --tag="advanced-api-controller-config"
 ```
 
 Cela créera le fichier `config/advanced-api-controller.php`.
@@ -186,7 +186,7 @@ php artisan make:maravel.controller ProductController
 ```php
 namespace App\Http\Controllers\API;
 
-use LaravelAdvancedApiController\Http\Controllers\APIController;
+use Maravel\Http\Controllers\APIController;
 use App\Models\Product;
 
 class ProductController extends APIController
@@ -289,7 +289,7 @@ Utilisez `ModelBase` comme classe parente pour vos modèles afin de bénéficier
 ```php
 namespace App\Models;
 
-use LaravelAdvancedApiController\Models\ModelBase;
+use Maravel\Models\ModelBase;
 
 class Product extends ModelBase
 {
@@ -355,7 +355,7 @@ Le coeur du système de formatage. Ce trait est utilisé par `ModelBase` et `Aut
 #### Fonctionnalités du trait
 
 ```php
-use LaravelAdvancedApiController\Models\ModelTrait;
+use Maravel\Models\ModelTrait;
 
 class MyModel extends Model
 {
@@ -385,7 +385,7 @@ Vous pouvez utiliser `ModelTrait` directement sans hériter de `ModelBase` :
 
 ```php
 use Illuminate\Database\Eloquent\Model;
-use LaravelAdvancedApiController\Models\ModelTrait;
+use Maravel\Models\ModelTrait;
 
 class Product extends Model
 {
@@ -415,7 +415,7 @@ namespace App\Models;
 
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use LaravelAdvancedApiController\Models\AuthenticatableBase;
+use Maravel\Models\AuthenticatableBase;
 
 class User extends AuthenticatableBase
 {
@@ -501,7 +501,7 @@ php artisan make:maravel.policy ProductPolicy
 ```php
 namespace App\Policies;
 
-use LaravelAdvancedApiController\Policies\BasePolicy;
+use Maravel\Policies\BasePolicy;
 use App\Models\User;
 use App\Models\Product;
 
@@ -552,7 +552,7 @@ protected $policies = [
 Formatage standardisé des réponses JSON :
 
 ```php
-use LaravelAdvancedApiController\Http\Traits\CustomResponseTrait;
+use Maravel\Http\Traits\CustomResponseTrait;
 
 class MyController extends Controller
 {
@@ -576,7 +576,7 @@ class MyController extends Controller
 Méthodes utilitaires pour les contrôleurs :
 
 ```php
-use LaravelAdvancedApiController\Http\Traits\ControllerHelperTrait;
+use Maravel\Http\Traits\ControllerHelperTrait;
 
 class MyController extends Controller
 {
@@ -605,7 +605,7 @@ class MyController extends Controller
 Vérification simplifiée des permissions :
 
 ```php
-use LaravelAdvancedApiController\Http\Traits\PermissionCheckerTrait;
+use Maravel\Http\Traits\PermissionCheckerTrait;
 
 class MyController extends Controller
 {
@@ -878,7 +878,7 @@ $user->profile = 'user';   // Accès limité selon ability_rules
 #### Dans les contrôleurs
 
 ```php
-use LaravelAdvancedApiController\Http\Traits\PermissionCheckerTrait;
+use Maravel\Http\Traits\PermissionCheckerTrait;
 
 public function index(Request $request)
 {
@@ -1039,7 +1039,7 @@ class ProductController extends APIController
 ```php
 namespace App\Models;
 
-use LaravelAdvancedApiController\Models\ModelBase;
+use Maravel\Models\ModelBase;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Post extends ModelBase
@@ -1070,7 +1070,7 @@ class Post extends ModelBase
 ```php
 namespace App\Http\Controllers\API;
 
-use LaravelAdvancedApiController\Http\Controllers\APIController;
+use Maravel\Http\Controllers\APIController;
 use App\Models\Post;
 use Illuminate\Support\Str;
 
@@ -1152,7 +1152,7 @@ POST /api/posts
 ```php
 namespace App\Models;
 
-use LaravelAdvancedApiController\Models\ModelBase;
+use Maravel\Models\ModelBase;
 
 class Product extends ModelBase
 {
@@ -1168,7 +1168,7 @@ class Product extends ModelBase
 ```php
 namespace App\Policies;
 
-use LaravelAdvancedApiController\Policies\BasePolicy;
+use Maravel\Policies\BasePolicy;
 use App\Models\User;
 use App\Models\Product;
 
@@ -1214,7 +1214,7 @@ class ProductPolicy extends BasePolicy
 ```php
 namespace App\Http\Controllers\API;
 
-use LaravelAdvancedApiController\Http\Controllers\APIController;
+use Maravel\Http\Controllers\APIController;
 use App\Models\Product;
 
 class ProductController extends APIController

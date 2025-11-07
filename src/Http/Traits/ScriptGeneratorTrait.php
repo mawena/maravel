@@ -1,6 +1,6 @@
 <?php
 
-namespace LaravelAdvancedApiController\Http\Traits;
+namespace Maravel\Http\Traits;
 
 use Illuminate\Support\Facades\Response as FunctionType;
 

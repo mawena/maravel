@@ -1,6 +1,6 @@
 <?php
 
-namespace LaravelAdvancedApiController\Http\Traits;
+namespace Maravel\Http\Traits;
 
 use Exception;
 use Google\Client;

@@ -1,6 +1,6 @@
 <?php
 
-namespace LaravelAdvancedApiController\Models;
+namespace Maravel\Models;
 
 use Illuminate\Support\Carbon;
 

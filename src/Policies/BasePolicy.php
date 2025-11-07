@@ -1,8 +1,8 @@
 <?php
 
-namespace LaravelAdvancedApiController\Policies;
+namespace Maravel\Policies;
 
-use LaravelAdvancedApiController\Http\Traits\PermissionCheckerTrait;
+use Maravel\Http\Traits\PermissionCheckerTrait;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Model;
 

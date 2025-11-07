@@ -35,18 +35,18 @@
 	},
 	"autoload": {
 		"psr-4": {
-			"LaravelAdvancedApiController\\": "src/"
+			"Maravel\\": "src/"
 		}
 	},
 	"autoload-dev": {
 		"psr-4": {
-			"LaravelAdvancedApiController\\Tests\\": "tests/"
+			"Maravel\\Tests\\": "tests/"
 		}
 	},
 	"extra": {
 		"laravel": {
 			"providers": [
-				"LaravelAdvancedApiController\\Providers\\AdvancedApiControllerServiceProvider"
+				"Maravel\\Providers\\AdvancedApiControllerServiceProvider"
 			]
 		}
 	},

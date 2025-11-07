@@ -3,7 +3,7 @@
 namespace {{ namespace }};
 
 use Illuminate\Http\Request;
-use LaravelAdvancedApiController\Http\Controllers\APIController;
+use Maravel\Http\Controllers\APIController;
 
 /**
  * @group {{ baseName }}

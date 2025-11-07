@@ -1,6 +1,6 @@
 <?php
 
-namespace LaravelAdvancedApiController\Console\Commands;
+namespace Maravel\Console\Commands;
 
 use Illuminate\Console\GeneratorCommand;
 use Symfony\Component\Console\Input\InputArgument;

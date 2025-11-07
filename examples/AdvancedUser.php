@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use LaravelAdvancedApiController\Models\ModelBase;
+use Maravel\Models\ModelBase;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;

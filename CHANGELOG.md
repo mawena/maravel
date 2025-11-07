@@ -34,7 +34,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - **Exemples** plus complets et réalistes
 
 ### Changé
-- **Namespace** changé vers `LaravelAdvancedApiController`
+- **Namespace** changé vers `Maravel`
 - **Nom du package** : `maravel`
 - **Service Provider** : `AdvancedApiControllerServiceProvider`
 - **Configuration** : `advanced-api-controller.php`

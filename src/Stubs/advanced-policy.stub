@@ -4,7 +4,7 @@ namespace {{ namespace }};
 
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Model;
-use LaravelAdvancedApiController\Policies\BasePolicy;
+use Maravel\Policies\BasePolicy;
 
 /**
  * Policy avancée pour {{ class }}

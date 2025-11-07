@@ -6,17 +6,18 @@ use Illuminate\Console\GeneratorCommand;
 use Symfony\Component\Console\Input\InputArgument;
 
 /**
- * Commande pour créer des contrôleurs avec le nom standard Laravel
- * 
- * Cette commande remplace la commande make:controller standard de Laravel
- * et génère des contrôleurs qui étendent APIController avec un système de gestion avancé.
+ * Commande pour créer des contrôleurs API avec Maravel
+ *
+ * Cette commande génère des contrôleurs qui étendent APIController
+ * avec un système de gestion avancé. Elle coexiste avec la commande
+ * make:controller standard de Laravel.
  */
 class MakeController extends GeneratorCommand
 {
 	/**
 	 * Le nom et la signature de la commande
 	 */
-	protected $name = 'make:controller';
+	protected $name = 'make:maravel.controller';
 
 	/**
 	 * La description de la commande

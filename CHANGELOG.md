@@ -9,9 +9,15 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Ajouté
 - **Système de permissions avancé** avec BasePolicy et PermissionCheckerTrait
-- **ModelBase** avec casts personnalisés automatiques
-- **Commande personnalisée** `make:advanced-policy` pour générer les policies
+- **ModelTrait** - Trait partagé pour le formatage des données (évite la duplication de code)
+- **ModelBase** avec casts personnalisés automatiques (utilise ModelTrait)
+- **AuthenticatableBase** pour les modèles d'authentification (utilise ModelTrait)
+- **Commandes personnalisées** :
+  - `make:maravel.controller` - Génère un contrôleur API complet
+  - `make:maravel.model` - Génère un modèle avec ModelBase/AuthenticatableBase
+  - `make:maravel.policy` - Génère une policy avancée
 - **Support des profils utilisateur** et règles d'abilités
+- **Options avancées** pour make:maravel.model (-m, -c, -p, -a, --all)
 - **Formatage automatique** des dates, montants, booléens, énumérations
 - **Vérifications de permissions** personnalisées par modèle
 - **Configuration avancée** via fichier de config

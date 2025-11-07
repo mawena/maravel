@@ -57,12 +57,13 @@
 - **Méthodes dynamiques** : Ajout de casts personnalisés à la volée
 
 ### 🛠️ Commandes Artisan
-- `make:controller` : Génère un contrôleur API complet avec CRUD, validation, hooks
-- `make:policy` : Génère une policy avancée avec système de permissions
-- `make:advanced-controller` : Alternative avec fonctionnalités avancées
-- `make:advanced-policy` : Alternative avec permissions avancées
+- `make:maravel.controller` : Génère un contrôleur API complet avec CRUD, validation, hooks
+- `make:maravel.model` : Génère un modèle avec ModelBase et formatage automatique
+- `make:maravel.policy` : Génère une policy avancée avec système de permissions
+- **Note** : Les commandes Laravel par défaut (`make:controller`, `make:model`, `make:policy`) restent disponibles
 
 ### ⚡ Traits réutilisables
+- **ModelTrait** : Formatage automatique des données (dates, money, enums, booleans)
 - **CustomResponseTrait** : Formatage standardisé des réponses JSON avec encodage UTF-8
 - **ControllerHelperTrait** : Méthodes utilitaires pour les filtres, recherches, et fichiers
 - **PermissionCheckerTrait** : Vérification des permissions simplifiée
@@ -177,7 +178,7 @@ Le fichier de configuration `config/advanced-api-controller.php` vous permet de 
 ### 1. Créer un contrôleur
 
 ```bash
-php artisan make:controller ProductController
+php artisan make:maravel.controller ProductController
 ```
 
 ### 2. Définir le modèle et la validation
@@ -347,6 +348,144 @@ Les attributs suivants sont automatiquement ajoutés :
 
 ---
 
+### ModelTrait
+
+Le coeur du système de formatage. Ce trait est utilisé par `ModelBase` et `AuthenticatableBase`.
+
+#### Fonctionnalités du trait
+
+```php
+use LaravelAdvancedApiController\Models\ModelTrait;
+
+class MyModel extends Model
+{
+    use ModelTrait;
+
+    protected $dateCasts = ['published_at' => 'd/m/Y'];
+    protected $moneyCasts = ['price', 'cost'];
+    protected $booleanCasts = ['is_active'];
+    protected $enumCasts = [
+        'status' => ['draft' => 'Brouillon', 'published' => 'Publié']
+    ];
+}
+```
+
+#### Méthodes disponibles
+
+- `addDateCast($column, $format)` : Ajoute un cast de date dynamiquement
+- `addMoneyCast($column)` : Ajoute un cast monétaire dynamiquement
+- `addBooleanCast($column)` : Ajoute un cast booléen dynamiquement
+- `addEnumCast($column, $choices)` : Ajoute un cast enum dynamiquement
+- `addFloatCast($column)` : Ajoute un cast float dynamiquement
+- `addBigIntegerCast($column)` : Ajoute un cast big integer dynamiquement
+
+#### Utilisation directe du trait
+
+Vous pouvez utiliser `ModelTrait` directement sans hériter de `ModelBase` :
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use LaravelAdvancedApiController\Models\ModelTrait;
+
+class Product extends Model
+{
+    use ModelTrait; // Utilisation directe du trait
+
+    protected $dateCasts = ['launched_at' => 'd/m/Y'];
+    protected $moneyCasts = ['price'];
+}
+```
+
+---
+
+### AuthenticatableBase
+
+Pour les modèles nécessitant l'authentification (comme User), Maravel fournit `AuthenticatableBase`.
+
+#### Créer un modèle User
+
+```bash
+php artisan make:maravel.model User --authenticatable -m
+```
+
+#### Exemple de modèle User
+
+```php
+namespace App\Models;
+
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use LaravelAdvancedApiController\Models\AuthenticatableBase;
+
+class User extends AuthenticatableBase
+{
+    use HasApiTokens, Notifiable;
+
+    protected $fillable = ['name', 'email', 'password', 'profile'];
+    protected $hidden = ['password', 'remember_token'];
+
+    // Casts d'énumération pour le profil
+    protected $enumCasts = [
+        'profile' => [
+            'admin' => 'Administrateur',
+            'user' => 'Utilisateur',
+            'manager' => 'Gestionnaire',
+        ],
+    ];
+
+    /**
+     * Règles d'abilités pour le système de permissions
+     */
+    public function getAbilityRulesAttribute(): array
+    {
+        return match($this->profile) {
+            'admin' => [
+                ['subject' => ['all'], 'action' => ['manage']],
+            ],
+            'manager' => [
+                ['subject' => ['product', 'order'], 'action' => ['read', 'create', 'update']],
+            ],
+            'user' => [
+                ['subject' => ['product'], 'action' => ['read']],
+                ['subject' => ['order'], 'action' => ['read', 'create']],
+            ],
+            default => [],
+        };
+    }
+
+    /**
+     * Vérifie si l'utilisateur est administrateur
+     */
+    public function isAdmin(): bool
+    {
+        return $this->profile === 'admin';
+    }
+}
+```
+
+#### Avantages d'AuthenticatableBase
+
+- ✅ **Compatible avec l'authentification Laravel** : Étend `Illuminate\Foundation\Auth\User`
+- ✅ **Formatage automatique** : Utilise ModelTrait pour les mêmes fonctionnalités que ModelBase
+- ✅ **Support Sanctum** : Compatible avec Laravel Sanctum pour les API
+- ✅ **Permissions intégrées** : Système d'abilités prêt à l'emploi
+- ✅ **Méthodes utilitaires** : isAdmin(), hasProfile() générées automatiquement
+
+#### Architecture
+
+```
+ModelTrait (trait commun)
+    ├── ModelBase (pour modèles standards)
+    │   └── extends Model
+    │
+    └── AuthenticatableBase (pour authentification)
+        └── extends Authenticatable
+```
+
+Les deux classes utilisent le même trait `ModelTrait`, évitant ainsi la duplication de code.
+
+---
+
 ### BasePolicy
 
 Créez des policies avancées avec système de permissions.
@@ -354,7 +493,7 @@ Créez des policies avancées avec système de permissions.
 #### Créer une policy
 
 ```bash
-php artisan make:policy ProductPolicy
+php artisan make:maravel.policy ProductPolicy
 ```
 
 #### Exemple de policy
@@ -493,43 +632,120 @@ class MyController extends Controller
 
 ### Commandes Artisan
 
-#### make:controller
+Maravel fournit deux commandes personnalisées qui **coexistent** avec les commandes Laravel standard. Les commandes par défaut (`make:controller`, `make:policy`) restent disponibles et fonctionnelles.
 
-Génère un contrôleur API complet :
+#### make:maravel.controller
+
+Génère un contrôleur API complet avec APIController :
 
 ```bash
-php artisan make:controller ProductController
+php artisan make:maravel.controller ProductController
 ```
 
-Génère un contrôleur avec :
-- Toutes les méthodes CRUD
-- Validation configurée
+**Ce qui est généré** :
+- Toutes les méthodes CRUD prêtes à l'emploi
+- Système de validation avancé
 - Hooks (before/after create, update, delete)
 - Documentation PHPDoc complète
-- Gestion des permissions
+- Gestion des permissions intégrée
+- Support automatique des filtres et pagination
 
-#### make:policy
+**Emplacement** : `App\Http\Controllers\API\ProductController.php`
 
-Génère une policy avancée :
+#### make:maravel.model
+
+Génère un modèle avec ModelBase ou AuthenticatableBase :
 
 ```bash
-php artisan make:policy ProductPolicy
+# Modèle standard avec ModelBase
+php artisan make:maravel.model Product
+
+# Modèle User avec AuthenticatableBase (pour l'authentification)
+php artisan make:maravel.model User --authenticatable
 ```
 
-Génère une policy avec :
-- Toutes les méthodes de permissions (viewAny, view, create, update, delete, etc.)
-- Méthode `before()` pour vérifications globales
-- Support des permissions personnalisées
-- Documentation PHPDoc complète
+**Ce qui est généré** :
+- Extension de ModelBase (ou AuthenticatableBase avec option `-a`)
+- Formatage automatique des dates (created_at_fr, updated_at_fr)
+- Support des casts personnalisés ($dateCasts, $moneyCasts, $enumCasts, $booleanCasts)
+- Relations Eloquent commentées (exemples)
+- Scopes commentés (exemples)
+- Méthodes utilitaires (pour User: isAdmin(), hasProfile())
 
-#### Options des commandes
+**Emplacement** : `App\Models\Product.php`
+
+**Options disponibles** :
+- `-m` ou `--migration` : Crée automatiquement la migration
+- `-c` ou `--controller` : Crée automatiquement le contrôleur API
+- `-p` ou `--policy` : Crée automatiquement la policy
+- `-a` ou `--authenticatable` : Crée un modèle Authenticatable (User)
+- `--all` : Crée migration, contrôleur et policy en une seule commande
+
+**Exemples** :
+```bash
+# Créer un modèle avec migration
+php artisan make:maravel.model Product -m
+
+# Créer un modèle avec tout (migration, controller, policy)
+php artisan make:maravel.model Product --all
+
+# Créer un modèle User avec authentification
+php artisan make:maravel.model User --authenticatable -m
+
+# Créer un modèle avec controller et policy
+php artisan make:maravel.model Post -cp
+```
+
+#### make:maravel.policy
+
+Génère une policy avancée avec BasePolicy :
 
 ```bash
-# Créer un contrôleur avec un nom spécifique
-php artisan make:controller API/ProductController
+php artisan make:maravel.policy ProductPolicy
+```
 
-# Créer une policy pour un modèle spécifique
-php artisan make:policy ProductPolicy --model=Product
+**Ce qui est généré** :
+- Toutes les méthodes de permissions (viewAny, view, create, update, delete, restore, forceDelete)
+- Méthode `before()` pour vérifications globales
+- Support des permissions personnalisées
+- Système de règles d'abilités
+- Documentation PHPDoc complète
+
+**Emplacement** : `App\Policies\ProductPolicy.php`
+
+#### Différence avec les commandes Laravel standard
+
+| Commande | Description |
+|----------|-------------|
+| `make:controller` | Commande Laravel standard - génère un contrôleur vide |
+| `make:maravel.controller` | Commande Maravel - génère un contrôleur API complet avec APIController |
+| `make:model` | Commande Laravel standard - génère un modèle basique |
+| `make:maravel.model` | Commande Maravel - génère un modèle avec ModelBase et formatage automatique |
+| `make:policy` | Commande Laravel standard - génère une policy basique |
+| `make:maravel.policy` | Commande Maravel - génère une policy avancée avec BasePolicy |
+
+#### Exemples d'utilisation complète
+
+```bash
+# Workflow complet : Créer un modèle avec tout
+php artisan make:maravel.model Product --all
+# Cela crée : Model + Migration + Controller + Policy
+
+# Workflow étape par étape
+php artisan make:maravel.model Product -m        # Modèle + Migration
+php artisan make:maravel.controller Product      # Contrôleur
+php artisan make:maravel.policy Product          # Policy
+
+# Créer un contrôleur dans un sous-dossier
+php artisan make:maravel.controller API/V2/ProductController
+
+# Créer un modèle User avec authentification
+php artisan make:maravel.model User -a -m
+
+# Workflow pour un modèle de blog complet
+php artisan make:maravel.model Post --all
+# Éditer la migration, puis :
+php artisan migrate
 ```
 
 ---

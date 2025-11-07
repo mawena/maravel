@@ -7,17 +7,18 @@ use Illuminate\Support\Str;
 use Symfony\Component\Console\Input\InputArgument;
 
 /**
- * Commande pour créer des policies avec le nom standard Laravel
- * 
- * Cette commande remplace la commande make:policy standard de Laravel
- * et génère des policies qui étendent BasePolicy avec un système de permissions avancé.
+ * Commande pour créer des policies avec Maravel
+ *
+ * Cette commande génère des policies qui étendent BasePolicy
+ * avec un système de permissions avancé. Elle coexiste avec la commande
+ * make:policy standard de Laravel.
  */
 class MakePolicy extends GeneratorCommand
 {
 	/**
 	 * Le nom et la signature de la commande
 	 */
-	protected $name = 'make:policy';
+	protected $name = 'make:maravel.policy';
 
 	/**
 	 * La description de la commande

@@ -1,0 +1,200 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use LaravelAdvancedApiController\Models\AuthenticatableBase;
+
+/**
+ * Modèle {{ class }} (Authenticatable)
+ *
+ * Ce modèle étend AuthenticatableBase pour supporter l'authentification Laravel.
+ * Il inclut les traits nécessaires pour l'API (HasApiTokens) et les notifications.
+ *
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property string $password
+ * @property string|null $remember_token
+ * @property \Illuminate\Support\Carbon|null $email_verified_at
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ */
+class {{ class }} extends AuthenticatableBase
+{
+	use HasApiTokens, HasFactory, Notifiable;
+
+	/**
+	 * Le nom de la table associée au modèle
+	 *
+	 * @var string
+	 */
+	protected $table = '{{ table }}';
+
+	/**
+	 * Les attributs assignables en masse
+	 *
+	 * @var array<int, string>
+	 */
+	protected $fillable = [
+		'name',
+		'email',
+		'password',
+		// Ajoutez vos colonnes supplémentaires ici
+	];
+
+	/**
+	 * Les attributs qui doivent être cachés pour la sérialisation
+	 *
+	 * @var array<int, string>
+	 */
+	protected $hidden = [
+		'password',
+		'remember_token',
+	];
+
+	/**
+	 * Les attributs à ajouter lors de la sérialisation
+	 *
+	 * @var array<int, string>
+	 */
+	protected $appends = [
+		// Exemple: 'ability_rules', 'profile_fr'
+	];
+
+	/**
+	 * Les attributs qui doivent être castés
+	 *
+	 * @var array<string, string>
+	 */
+	protected function casts(): array
+	{
+		return [
+			'email_verified_at' => 'datetime',
+			'password' => 'hashed',
+		];
+	}
+
+	/**
+	 * Casts de dates personnalisés (format français)
+	 * Format: ['column_name' => 'd/m/Y H:i']
+	 *
+	 * @var array
+	 */
+	protected $dateCasts = [
+		// Exemple: 'last_login_at' => 'd/m/Y H:i'
+	];
+
+	/**
+	 * Casts d'énumération (traduction des valeurs)
+	 * Format: ['column' => ['value1' => 'Label1', 'value2' => 'Label2']]
+	 *
+	 * @var array
+	 */
+	protected $enumCasts = [
+		// Exemple:
+		// 'profile' => [
+		//     'admin' => 'Administrateur',
+		//     'user' => 'Utilisateur',
+		//     'manager' => 'Gestionnaire',
+		// ],
+	];
+
+	/*
+	|--------------------------------------------------------------------------
+	| Permissions et Abilités
+	|--------------------------------------------------------------------------
+	|
+	| Système de permissions pour BasePolicy
+	|
+	*/
+
+	/**
+	 * Règles d'abilités pour le système de permissions
+	 *
+	 * @return array
+	 */
+	public function getAbilityRulesAttribute(): array
+	{
+		// Exemple de configuration par profil
+		// return match($this->profile) {
+		//     'admin' => [
+		//         ['subject' => ['all'], 'action' => ['manage']],
+		//     ],
+		//     'user' => [
+		//         ['subject' => ['post'], 'action' => ['read', 'create']],
+		//         ['subject' => ['comment'], 'action' => ['read', 'create', 'update', 'delete']],
+		//     ],
+		//     default => [],
+		// };
+
+		return [];
+	}
+
+	/*
+	|--------------------------------------------------------------------------
+	| Relations Eloquent
+	|--------------------------------------------------------------------------
+	*/
+
+	// Exemple: Posts créés par l'utilisateur
+	// public function posts(): HasMany
+	// {
+	//     return $this->hasMany(Post::class);
+	// }
+
+	/*
+	|--------------------------------------------------------------------------
+	| Scopes
+	|--------------------------------------------------------------------------
+	*/
+
+	// Exemple: Filtrer les utilisateurs actifs
+	// public function scopeActive($query)
+	// {
+	//     return $query->where('is_active', true);
+	// }
+
+	/*
+	|--------------------------------------------------------------------------
+	| Accesseurs & Mutateurs
+	|--------------------------------------------------------------------------
+	*/
+
+	// Exemple: Accesseur pour le profil formaté
+	// protected function profileFr(): Attribute
+	// {
+	//     return Attribute::make(
+	//         get: fn () => $this->enumCasts['profile'][$this->profile] ?? $this->profile,
+	//     );
+	// }
+
+	/*
+	|--------------------------------------------------------------------------
+	| Méthodes personnalisées
+	|--------------------------------------------------------------------------
+	*/
+
+	/**
+	 * Vérifie si l'utilisateur est administrateur
+	 *
+	 * @return bool
+	 */
+	public function isAdmin(): bool
+	{
+		return $this->profile === 'admin';
+	}
+
+	/**
+	 * Vérifie si l'utilisateur a un profil spécifique
+	 *
+	 * @param string $profile
+	 * @return bool
+	 */
+	public function hasProfile(string $profile): bool
+	{
+		return $this->profile === $profile;
+	}
+}

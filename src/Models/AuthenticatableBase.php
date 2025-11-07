@@ -3,6 +3,8 @@
 namespace Maravel\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 /**
  * Classe de base enrichie pour les modèles d'authentification
@@ -34,5 +36,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
  */
 class AuthenticatableBase extends Authenticatable
 {
+	use HasApiTokens, Notifiable;
+
 	use ModelTrait;
 }

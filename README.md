@@ -1,422 +1,1157 @@
-# Laravel Advanced API Controller Library v2
+# Maravel
 
-Une librairie Laravel avancée qui fournit un contrôleur API générique avec système de permissions, modèles enrichis, policies automatiques et traits personnalisés pour simplifier le développement d'APIs REST complexes.
+![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![PHP](https://img.shields.io/badge/php-%5E8.1%7C%5E8.2%7C%5E8.3%7C%5E8.4-777BB4.svg)
+![Laravel](https://img.shields.io/badge/laravel-%5E10.0%7C%5E11.0%7C%5E12.0-FF2D20.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+
+**Maravel** est une librairie Laravel avancée qui accélère le développement d'API REST en fournissant un contrôleur générique avec CRUD complet, un système de permissions sophistiqué, des modèles enrichis avec formatage automatique, et des commandes Artisan pour générer du code prêt à l'emploi.
+
+## Table des matières
+
+- [Fonctionnalités principales](#fonctionnalités-principales)
+- [Prérequis](#prérequis)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Démarrage rapide](#démarrage-rapide)
+- [Utilisation avancée](#utilisation-avancée)
+  - [APIController](#apicontroller)
+  - [ModelBase](#modelbase)
+  - [BasePolicy](#basepolicy)
+  - [Traits disponibles](#traits-disponibles)
+  - [Commandes Artisan](#commandes-artisan)
+- [Filtres avancés](#filtres-avancés)
+- [Système de permissions](#système-de-permissions)
+- [Hooks et callbacks](#hooks-et-callbacks)
+- [Exemples complets](#exemples-complets)
+- [Tests](#tests)
+- [Changelog](#changelog)
+- [Contribution](#contribution)
+- [License](#license)
+
+---
+
+## Fonctionnalités principales
+
+### 🚀 APIController générique
+- **CRUD complet** : Toutes les opérations (index, show, store, update, destroy) prêtes à l'emploi
+- **Création multiple** : Méthode `store_multiple()` pour créer plusieurs enregistrements en une seule requête
+- **Filtrage automatique** : Filtres basiques, min/max, IN/NOT IN, relations, recherche textuelle, JSON
+- **Pagination intelligente** : Pagination automatique ou désactivable avec paramètres configurables
+- **Tri dynamique** : Tri ascendant/descendant sur n'importe quelle colonne
+- **Gestion des relations** : Chargement automatique des relations Eloquent via paramètres d'URL
+
+### 🔐 Système de permissions avancé
+- **BasePolicy** : Classe de base pour créer des policies sophistiquées
+- **Permissions par profil** : Support des profils utilisateur (admin, user, etc.)
+- **Règles d'abilités** : Système de règles avec sujets et actions (CASL-like)
+- **PermissionCheckerTrait** : Méthodes helper pour vérifier les permissions facilement
+- **Admin bypass** : Les administrateurs ont accès complet automatiquement
+
+### 📦 ModelBase enrichi
+- **Formatage automatique des dates** : Conversion automatique avec localisation française
+- **Formatage des montants** : Affichage des valeurs monétaires avec devise
+- **Conversion des booléens** : Transformation en format lisible
+- **Traduction des énumérations** : Support des enums avec traduction
+- **Formatage des décimaux** : Notation française avec virgule
+- **Méthodes dynamiques** : Ajout de casts personnalisés à la volée
+
+### 🛠️ Commandes Artisan
+- `make:controller` : Génère un contrôleur API complet avec CRUD, validation, hooks
+- `make:policy` : Génère une policy avancée avec système de permissions
+- `make:advanced-controller` : Alternative avec fonctionnalités avancées
+- `make:advanced-policy` : Alternative avec permissions avancées
+
+### ⚡ Traits réutilisables
+- **CustomResponseTrait** : Formatage standardisé des réponses JSON avec encodage UTF-8
+- **ControllerHelperTrait** : Méthodes utilitaires pour les filtres, recherches, et fichiers
+- **PermissionCheckerTrait** : Vérification des permissions simplifiée
+- **ScriptGeneratorTrait** : Génération de code automatique
+
+---
+
+## Prérequis
+
+- **PHP** : 8.1, 8.2, 8.3 ou 8.4
+- **Laravel** : 10.x, 11.x ou 12.x
+- **Composer** : 2.x
+
+---
 
 ## Installation
 
-### Via Composer
+Installez la librairie via Composer :
 
 ```bash
 composer require mawena/maravel
 ```
 
-### Configuration
+Le service provider sera automatiquement enregistré grâce à l'auto-discovery de Laravel.
 
-Publiez le fichier de configuration (optionnel) :
+### Publication de la configuration (optionnel)
+
+Pour personnaliser la configuration, publiez le fichier de configuration :
 
 ```bash
-php artisan vendor:publish --provider="LaravelAdvancedApiController\\Providers\\AdvancedApiControllerServiceProvider" --tag="advanced-api-controller-config"
+php artisan vendor:publish --provider="LaravelAdvancedApiController\Providers\AdvancedApiControllerServiceProvider" --tag="advanced-api-controller-config"
 ```
 
-## Nouvelles fonctionnalités v2
+Cela créera le fichier `config/advanced-api-controller.php`.
 
-### ✨ Système de permissions avancé
-- **BasePolicy** avec vérifications automatiques
-- **PermissionCheckerTrait** pour la gestion des permissions
-- Support des profils utilisateur et règles d'abilités
-- Vérifications personnalisées par modèle
+---
 
-### 🎯 Modèles enrichis
-- **ModelBase** avec casts personnalisés
-- Formatage automatique des dates, montants, booléens
-- Support des énumérations et formats monétaires
-- Méthodes utilitaires pour les statistiques
+## Configuration
 
-### 🛠️ Outils de développement
-- **Commandes personnalisées** : 
-  - `php artisan make:controller` (version avancée)
-  - `php artisan make:policy` (version avancée)
-  - `php artisan make:advanced-controller`
-  - `php artisan make:advanced-policy`
-- **Génération automatique** des contrôleurs et policies
-- **Configuration avancée** via fichier de config
-- **Stubs personnalisés** pour les contrôleurs et policies
+Le fichier de configuration `config/advanced-api-controller.php` vous permet de personnaliser :
 
-## Commandes Artisan Disponibles
+### Defaults (Paramètres par défaut)
 
-### Commandes Standard (Recommandées)
+```php
+'defaults' => [
+    'pagination' => [
+        'per_page' => 8,           // Nombre d'éléments par page
+        'max_per_page' => 100,     // Maximum d'éléments par page
+    ],
+    'validation' => [
+        'store' => [],             // Règles de validation par défaut pour store
+        'update' => [],            // Règles de validation par défaut pour update
+    ],
+    'authorization' => [
+        'ability_read' => 'read',
+        'ability_create' => 'create',
+        'ability_update' => 'update',
+        'ability_delete' => 'delete',
+    ],
+],
+```
 
-#### `make:controller`
-Remplace la commande standard Laravel avec des fonctionnalités avancées :
+### Filters (Configuration des filtres)
+
+```php
+'filters' => [
+    'enabled' => true,
+    'types' => [
+        'basic' => true,           // Filtres basiques: ?name=value
+        'min_max' => true,         // Filtres min/max: ?min<age=18
+        'in_not_in' => true,       // Filtres IN/NOT IN: ?in_status=active-pending
+        'relations' => true,       // Filtres sur relations
+        'search' => true,          // Recherche textuelle: ?search=keyword
+        'json' => true,            // Filtres JSON
+    ],
+],
+```
+
+### Models (Configuration des modèles)
+
+```php
+'models' => [
+    'use_model_base' => true,
+    'date_format' => 'd/m/Y H:i:s',
+    'money_format' => [
+        'currency' => 'XOF',
+        'decimal_separator' => ',',
+        'thousands_separator' => ' ',
+    ],
+    'auto_casts' => [
+        'created_at' => true,
+        'updated_at' => true,
+    ],
+],
+```
+
+### Permissions (Configuration des permissions)
+
+```php
+'permissions' => [
+    'enabled' => true,
+    'use_advanced_policies' => true,
+    'admin_profile' => 'admin',
+    'check_permissions' => true,
+],
+```
+
+---
+
+## Démarrage rapide
+
+### 1. Créer un contrôleur
 
 ```bash
 php artisan make:controller ProductController
 ```
 
-Génère un contrôleur API complet avec :
-- Méthodes CRUD automatiques
-- Gestion des relations
-- Système de validation avancé
-- Documentation API intégrée
+### 2. Définir le modèle et la validation
 
-#### `make:policy`
-Remplace la commande standard Laravel avec des fonctionnalités avancées :
+```php
+namespace App\Http\Controllers\API;
+
+use LaravelAdvancedApiController\Http\Controllers\APIController;
+use App\Models\Product;
+
+class ProductController extends APIController
+{
+    protected string $modelClass = Product::class;
+
+    protected array $storeValidationArray = [
+        'name' => 'required|string|max:255',
+        'price' => 'required|numeric|min:0',
+        'stock' => 'required|integer|min:0',
+    ];
+
+    protected array $updateValidationArray = [
+        'name' => 'string|max:255',
+        'price' => 'numeric|min:0',
+        'stock' => 'integer|min:0',
+    ];
+
+    protected array $indexSearchFieldList = ['name', 'description'];
+}
+```
+
+### 3. Créer les routes
+
+```php
+use App\Http\Controllers\API\ProductController;
+
+Route::apiResource('products', ProductController::class);
+```
+
+### 4. C'est prêt!
+
+Votre API est maintenant opérationnelle avec :
+
+- **GET** `/api/products` - Liste tous les produits
+- **GET** `/api/products/{id}` - Affiche un produit
+- **POST** `/api/products` - Crée un produit
+- **PUT/PATCH** `/api/products/{id}` - Modifie un produit
+- **DELETE** `/api/products/{id}` - Supprime un produit
+
+---
+
+## Utilisation avancée
+
+### APIController
+
+Le contrôleur de base fournit toutes les méthodes CRUD et de nombreuses options de personnalisation.
+
+#### Propriétés disponibles
+
+```php
+class ProductController extends APIController
+{
+    // OBLIGATOIRE : Classe du modèle Eloquent
+    protected string $modelClass = Product::class;
+
+    // Validation pour la création
+    protected array $storeValidationArray = [];
+
+    // Validation pour la mise à jour
+    protected array $updateValidationArray = [];
+
+    // Champs de recherche textuelle
+    protected array $indexSearchFieldList = [];
+
+    // Relations à charger automatiquement
+    protected array $indexWithArray = [];
+    protected array $showWithArray = [];
+
+    // Nom de l'abilité pour les permissions
+    protected string $readAbilityName = 'read';
+    protected string $createAbilityName = 'create';
+    protected string $updateAbilityName = 'update';
+    protected string $deleteAbilityName = 'delete';
+
+    // Activation/désactivation des permissions
+    protected bool $indexCheckAbility = true;
+    protected bool $showCheckAbility = true;
+    protected bool $storeCheckAbility = true;
+    protected bool $updateCheckAbility = true;
+    protected bool $deleteCheckAbility = true;
+}
+```
+
+#### Méthodes disponibles
+
+- `index(Request $request)` : Liste les ressources avec filtrage, recherche, tri, pagination
+- `show($id, Request $request)` : Affiche une ressource spécifique
+- `store(Request $request)` : Crée une nouvelle ressource
+- `store_multiple(Request $request)` : Crée plusieurs ressources en une fois
+- `update(Request $request, $id)` : Met à jour une ressource
+- `destroy($id)` : Supprime une ressource
+
+---
+
+### ModelBase
+
+Utilisez `ModelBase` comme classe parente pour vos modèles afin de bénéficier du formatage automatique.
+
+```php
+namespace App\Models;
+
+use LaravelAdvancedApiController\Models\ModelBase;
+
+class Product extends ModelBase
+{
+    protected $fillable = ['name', 'price', 'stock', 'description'];
+
+    // Définir les casts personnalisés
+    protected array $dateCasts = [
+        'published_at' => 'd/m/Y',  // Format personnalisé
+    ];
+
+    protected array $moneyCasts = [
+        'price',                     // Formaté avec la config par défaut
+    ];
+
+    protected array $booleanCasts = [
+        'is_active',                 // Formaté en 'Oui'/'Non'
+    ];
+
+    protected array $enumCasts = [
+        'status' => [
+            'active' => 'Actif',
+            'inactive' => 'Inactif',
+            'pending' => 'En attente',
+        ],
+    ];
+}
+```
+
+#### Méthodes dynamiques
+
+Ajoutez des casts à la volée :
+
+```php
+$product = Product::find(1);
+
+// Ajouter un cast date
+$product->addDateCast('last_order_at', 'd/m/Y H:i');
+
+// Ajouter un cast money
+$product->addMoneyCast('cost');
+
+// Ajouter un cast enum
+$product->addEnumCast('type', [
+    'physical' => 'Produit physique',
+    'digital' => 'Produit numérique',
+]);
+```
+
+#### Attributs automatiques
+
+Les attributs suivants sont automatiquement ajoutés :
+
+- `created_at_fr` : Date de création formatée
+- `updated_at_fr` : Date de mise à jour formatée
+- `{field}_formatted` : Version formatée de chaque cast
+
+---
+
+### BasePolicy
+
+Créez des policies avancées avec système de permissions.
+
+#### Créer une policy
 
 ```bash
 php artisan make:policy ProductPolicy
 ```
 
-Génère une policy complète avec :
-- Méthodes de permissions CRUD
-- Vérifications personnalisables
-- Support des profils utilisateur
-- Système d'abilités avancé
-
-### Commandes Avancées
-
-#### `make:advanced-controller`
-Génère un contrôleur avec toutes les fonctionnalités avancées :
-
-```bash
-php artisan make:advanced-controller ProductController
-```
-
-#### `make:advanced-policy`
-Génère une policy avec toutes les fonctionnalités avancées :
-
-```bash
-php artisan make:advanced-policy ProductPolicy
-```
-
-## Utilisation
-
-### 1. Créer un contrôleur API
-
-Créez un contrôleur qui étend `LaravelAdvancedApiController\Http\Controllers\APIController` :
+#### Exemple de policy
 
 ```php
-<?php
-
-namespace App\Http\Controllers\API;
-
-use LaravelAdvancedApiController\Http\Controllers\APIController;
-use App\Models\User;
-
-class UserController extends APIController
-{
-    protected string $modelClass = User::class;
-    
-    // Configuration des validations
-    protected array $storeValidationArray = [
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|unique:users',
-    ];
-    
-    protected array $storeValidationTextArray = [
-        'name.required' => 'Le nom est obligatoire',
-        'email.required' => 'L\'email est obligatoire',
-    ];
-    
-    // Configuration des autorisations
-    protected string|null $indexAbilityName = "viewAny";
-    protected string|null $storeAuthName = "create";
-    protected string|null $updateAuthName = "update";
-    protected string|null $destroyAuthName = "delete";
-    
-    // Champs de recherche
-    protected array $indexSearchFieldList = ['name', 'email'];
-    
-    // Relations à charger
-    protected array $storeRelationArray = ['profile'];
-    protected array $updateRelationArray = ['profile'];
-}
-```
-
-### 2. Définir les routes
-
-```php
-// routes/api.php
-use App\Http\Controllers\API\UserController;
-
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::apiResource('users', UserController::class);
-    Route::post('users/multiple', [UserController::class, 'store_multiple']);
-});
-```
-
-### 3. Fonctionnalités disponibles
-
-#### Méthodes CRUD automatiques
-
-- `GET /api/users` - Liste des utilisateurs avec filtres et pagination
-- `GET /api/users/{id}` - Détails d'un utilisateur
-- `POST /api/users` - Création d'un utilisateur
-- `POST /api/users/multiple` - Création multiple d'utilisateurs
-- `PUT /api/users/{id}` - Mise à jour d'un utilisateur
-- `DELETE /api/users/{id}` - Suppression d'un utilisateur
-
-#### Filtres automatiques
-
-- **Filtres basiques** : `?name=John&email=john@example.com`
-- **Filtres min/max** : `?min<age=18&max<age=65`
-- **Filtres IN/NOT IN** : `?in_status=active,inactive&not_in_role=admin`
-- **Recherche textuelle** : `?search=john`
-- **Relations** : `?with_profile=true&with_posts=true`
-- **Tri** : `?order_by_desc=created_at&order_by_asc=name`
-- **Pagination** : `?per_page=20&paginate=false`
-
-#### Hooks personnalisés
-
-```php
-class UserController extends APIController
-{
-    // Validation manuelle avant création
-    protected $storeManualValidationsFunction = function($requestData) {
-        // Logique de validation personnalisée
-        if (/* condition */) {
-            return ['errors' => ['field' => ['Message d\'erreur']], 'status' => 400];
-        }
-        return ['data' => ['custom_data' => 'value']];
-    };
-    
-    // Fonction exécutée avant la création
-    protected $storeBeforeCreateFunction = function($requestData, $manualValidationsData) {
-        $requestData['slug'] = Str::slug($requestData['name']);
-        return $requestData;
-    };
-    
-    // Fonction exécutée après la création
-    protected $storeAfterCreateFunction = function($model, $requestData, $manualValidationsData) {
-        // Logique post-création
-        $model->sendWelcomeEmail();
-        return $model;
-    };
-}
-```
-
-### 2. Créer un modèle enrichi
-
-Utilisez `ModelBase` pour des modèles avec formatage automatique :
-
-```php
-<?php
-
-namespace App\Models;
-
-use LaravelAdvancedApiController\Models\ModelBase;
-
-class User extends ModelBase
-{
-    protected $fillable = ['name', 'email', 'balance', 'is_active'];
-    
-    // Casts personnalisés
-    protected $money_casts = [
-        'balance' => 'balance_formatted'
-    ];
-    
-    protected $boolean_casts = [
-        'is_active' => 'is_active_bool'
-    ];
-    
-    protected $date_casts = [
-        'last_login' => ['new_name' => 'last_login_fr', 'format' => 'd/m/Y H:i']
-    ];
-}
-```
-
-### 3. Créer une policy avancée
-
-Utilisez les commandes personnalisées :
-
-```bash
-# Version standard (recommandée)
-php artisan make:policy UserPolicy
-
-# Version avancée
-php artisan make:advanced-policy UserPolicy
-```
-
-Ou créez manuellement :
-
-```php
-<?php
-
 namespace App\Policies;
 
 use LaravelAdvancedApiController\Policies\BasePolicy;
+use App\Models\User;
+use App\Models\Product;
 
-class UserPolicy extends BasePolicy
+class ProductPolicy extends BasePolicy
 {
-    protected $modelName = "user";
-    
-    // Vérifications personnalisées
-    public function view($user, $model)
+    // Le sujet pour les vérifications de permissions
+    protected string $subject = 'product';
+
+    // Méthode before() pour vérifications globales
+    public function before(User $user, string $ability): ?bool
     {
-        // L'utilisateur peut voir ses propres données
-        if ($model->id === $user->id) {
-            return Response::allow();
+        // Les admins ont tous les droits
+        if ($user->profile === 'admin') {
+            return true;
         }
-        
-        return parent::view($user, $model);
+
+        return null; // Continuer les vérifications normales
+    }
+
+    // Permission personnalisée
+    public function publish(User $user, Product $product): bool
+    {
+        return $this->checkCustomPermission($user, ['publish'], $this->subject)
+            && $product->user_id === $user->id;
     }
 }
 ```
 
-### 4. Configuration des permissions
+#### Enregistrer la policy
 
-Dans votre modèle User, configurez les règles d'abilités :
+Dans `AuthServiceProvider.php` :
 
 ```php
-public function getAbilityRulesAttribute()
+use App\Models\Product;
+use App\Policies\ProductPolicy;
+
+protected $policies = [
+    Product::class => ProductPolicy::class,
+];
+```
+
+---
+
+### Traits disponibles
+
+#### CustomResponseTrait
+
+Formatage standardisé des réponses JSON :
+
+```php
+use LaravelAdvancedApiController\Http\Traits\CustomResponseTrait;
+
+class MyController extends Controller
 {
-    return [
-        'admin' => [
-            ['subject' => ['all'], 'action' => ['manage']]
-        ],
-        'user' => [
-            ['subject' => ['user'], 'action' => ['read', 'update']],
-            ['subject' => ['post'], 'action' => ['read', 'create']]
-        ]
-    ][$this->profile];
+    use CustomResponseTrait;
+
+    public function index()
+    {
+        $data = ['items' => [...]];
+        return $this->responseOk($data, ['Success'], 200);
+    }
+
+    public function error()
+    {
+        return $this->responseError(['field' => ['Error message']], 400);
+    }
 }
 ```
 
-## Traits disponibles
-
-### CustomResponseTrait
-
-Fournit des méthodes pour formater les réponses JSON :
-
-```php
-// Réponse de succès simple
-return $this->responseOk($data, $messages, $status);
-
-// Réponse avec pagination
-return $this->responseOkPaginate($data, $messages, $status);
-
-// Réponse d'erreur
-return $this->responseError($errors, $status);
-```
-
-### ControllerHelperTrait
+#### ControllerHelperTrait
 
 Méthodes utilitaires pour les contrôleurs :
 
 ```php
-// Filtrage de requête
-$query = $this->queryFilter($query, $requestData, $modelName);
-$query = $this->querySearch($query, $columns, $search);
-$query = $this->queryRelationAdd($query, $requestData, $modelName);
+use LaravelAdvancedApiController\Http\Traits\ControllerHelperTrait;
 
-// Gestion des fichiers base64
-$path = $this->saveImageFromBase64($base64, $savePath);
-$path = $this->saveBase64File($base64String, $path);
-```
-
-### ScriptGeneratorTrait
-
-Méthodes pour la génération de code et templates :
-
-```php
-// Remplacement dans du contenu
-$content = $this->replaceWithAs($filterArray, $expression, $content);
-$content = $this->replaceFilters($filterArray, $valueArray, $expression, $content);
-```
-
-### PermissionCheckerTrait
-
-Méthodes pour la vérification des permissions :
-
-```php
-// Vérifications de base
-$canRead = $this->canRead('user', $user);
-$canCreate = $this->canCreate('post', $user);
-$canUpdate = $this->canUpdate('user', $user);
-$canDelete = $this->canDelete('post', $user);
-
-// Vérifications avancées
-$canManage = $this->canManage('all', $user);
-$isAdmin = $this->isAdmin($user);
-$hasProfile = $this->hasProfile('admin', $user);
-
-// Vérification personnalisée
-$canCustom = $this->check(['custom_action'], 'user', $user);
-```
-
-## Configuration avancée
-
-### Personnalisation des réponses
-
-```php
-class UserController extends APIController
+class MyController extends Controller
 {
+    use ControllerHelperTrait;
+
     public function index(Request $request)
     {
-        // Logique personnalisée avant d'appeler la méthode parent
-        $request->merge(['custom_filter' => 'value']);
-        
-        return parent::index($request);
+        $query = Product::query();
+
+        // Ajouter des filtres
+        $query = $this->queryFilter($query, $request->all(), 'Product');
+
+        // Ajouter recherche
+        $query = $this->querySearch($query, ['name', 'description'], $request->search);
+
+        // Ajouter relations
+        $query = $this->queryRelationAdd($query, $request->all(), 'Product');
+
+        return $query->get();
     }
 }
 ```
 
-### Filtrage personnalisé
+#### PermissionCheckerTrait
+
+Vérification simplifiée des permissions :
 
 ```php
-class UserController extends APIController
+use LaravelAdvancedApiController\Http\Traits\PermissionCheckerTrait;
+
+class MyController extends Controller
 {
-    protected $indexManualFilter = function($query, $user, $requestData) {
-        // Filtrage basé sur l'utilisateur connecté
-        if (!$user->isAdmin()) {
-            $query->where('user_id', $user->id);
+    use PermissionCheckerTrait;
+
+    public function index(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$this->canRead('product', $user)) {
+            return response()->json(['error' => 'Unauthorized'], 403);
         }
-        return $query;
-    };
+
+        if ($this->isAdmin($user)) {
+            // Logique admin
+        }
+
+        return Product::all();
+    }
 }
 ```
 
-## Exemples d'utilisation
+---
 
-### Requête avec filtres multiples
+### Commandes Artisan
+
+#### make:controller
+
+Génère un contrôleur API complet :
 
 ```bash
-GET /api/users?search=john&in_status=active,inactive&min<age=18&with_profile=true&order_by_desc=created_at&per_page=20
+php artisan make:controller ProductController
 ```
 
-### Création avec validation personnalisée
+Génère un contrôleur avec :
+- Toutes les méthodes CRUD
+- Validation configurée
+- Hooks (before/after create, update, delete)
+- Documentation PHPDoc complète
+- Gestion des permissions
+
+#### make:policy
+
+Génère une policy avancée :
+
+```bash
+php artisan make:policy ProductPolicy
+```
+
+Génère une policy avec :
+- Toutes les méthodes de permissions (viewAny, view, create, update, delete, etc.)
+- Méthode `before()` pour vérifications globales
+- Support des permissions personnalisées
+- Documentation PHPDoc complète
+
+#### Options des commandes
+
+```bash
+# Créer un contrôleur avec un nom spécifique
+php artisan make:controller API/ProductController
+
+# Créer une policy pour un modèle spécifique
+php artisan make:policy ProductPolicy --model=Product
+```
+
+---
+
+## Filtres avancés
+
+L'APIController supporte plusieurs types de filtres via l'URL :
+
+### Filtres basiques
+
+Filtrer par égalité :
+
+```
+GET /api/products?name=iPhone&category_id=2
+```
+
+### Filtres min/max
+
+Filtrer par plage de valeurs :
+
+```
+GET /api/products?min<price=100&max<price=500
+GET /api/products?min<stock=10
+```
+
+### Filtres IN/NOT IN
+
+Filtrer par liste de valeurs :
+
+```
+GET /api/products?in_status=active-pending-draft
+GET /api/products?not_in_category_id=1-2-3
+```
+
+### Recherche textuelle
+
+Rechercher dans plusieurs champs :
+
+```
+GET /api/products?search=iPhone
+```
+
+Les champs de recherche sont définis dans `$indexSearchFieldList`.
+
+### Chargement des relations
+
+Charger des relations Eloquent :
+
+```
+GET /api/products?with_category=true&with_reviews=true
+```
+
+Relations imbriquées :
+
+```
+GET /api/products?with_category<images=true
+```
+
+### Tri
+
+Trier les résultats :
+
+```
+GET /api/products?order_by_desc=created_at
+GET /api/products?order_by_asc=name
+GET /api/products?order_by_desc=price-stock
+```
+
+### Pagination
+
+Contrôler la pagination :
+
+```
+GET /api/products?per_page=20
+GET /api/products?page=2
+GET /api/products?paginate=false
+```
+
+### Combinaison de filtres
+
+Combiner plusieurs filtres :
+
+```
+GET /api/products?search=phone&min<price=100&max<price=1000&in_status=active-featured&with_category=true&order_by_desc=created_at&per_page=20
+```
+
+---
+
+## Système de permissions
+
+Maravel utilise un système de permissions flexible basé sur les profils et les règles d'abilités.
+
+### Structure des ability_rules
+
+Les utilisateurs doivent avoir un attribut `ability_rules` qui est un tableau de règles :
 
 ```php
-// POST /api/users
+$user->ability_rules = [
+    [
+        'subject' => ['product', 'category'],  // Sujets concernés
+        'action' => ['read', 'create'],         // Actions autorisées
+    ],
+    [
+        'subject' => ['all'],                   // Tous les sujets
+        'action' => ['read'],                   // Action lecture uniquement
+    ],
+];
+```
+
+### Actions disponibles
+
+- `read` : Lecture (viewAny, view)
+- `create` : Création
+- `update` : Mise à jour
+- `delete` : Suppression
+- `manage` : Toutes les actions
+- Personnalisées : Vous pouvez définir vos propres actions
+
+### Profils utilisateur
+
+L'attribut `profile` détermine le niveau d'accès :
+
+```php
+$user->profile = 'admin';  // Accès complet à tout
+$user->profile = 'user';   // Accès limité selon ability_rules
+```
+
+### Vérification des permissions
+
+#### Dans les contrôleurs
+
+```php
+use LaravelAdvancedApiController\Http\Traits\PermissionCheckerTrait;
+
+public function index(Request $request)
 {
-    "name": "John Doe",
-    "email": "john@example.com",
-    "age": 25
+    if (!$this->canRead('product', $request->user())) {
+        abort(403, 'Unauthorized');
+    }
+
+    return Product::all();
 }
 ```
 
-### Réponse formatée
+#### Dans les policies
 
-```json
+```php
+public function update(User $user, Product $product): bool
 {
-    "status": 201,
-    "data": {
-        "user": {
-            "id": 1,
-            "name": "John Doe",
-            "email": "john@example.com",
-            "age": 25,
-            "created_at": "2024-01-01T00:00:00.000000Z",
-            "updated_at": "2024-01-01T00:00:00.000000Z"
+    return $this->checkCustomPermission($user, ['update'], 'product')
+        && $product->user_id === $user->id;
+}
+```
+
+#### Dans les vues Blade
+
+```blade
+@can('update', $product)
+    <a href="/products/{{ $product->id }}/edit">Edit</a>
+@endcan
+```
+
+---
+
+## Hooks et callbacks
+
+L'APIController propose de nombreux hooks pour personnaliser le comportement.
+
+### Hooks de création
+
+```php
+class ProductController extends APIController
+{
+    // Validation personnalisée
+    protected function storeManualValidationsFunction(array $data): array
+    {
+        if ($data['price'] > 10000) {
+            return ['price' => ['Le prix ne peut pas dépasser 10000']];
         }
-    },
-    "messages": []
+        return [];
+    }
+
+    // Avant la création
+    protected function storeBeforeCreateFunction(array $data): array
+    {
+        $data['slug'] = Str::slug($data['name']);
+        return $data;
+    }
+
+    // Après la création
+    protected function storeAfterCreateFunction($model): void
+    {
+        // Envoyer un email
+        Mail::to('admin@example.com')->send(new ProductCreated($model));
+    }
+
+    // Avant le commit en base de données
+    protected function storeBeforeCommitFunction($model): void
+    {
+        // Logique métier
+    }
+
+    // Après le commit
+    protected function storeAfterCommitFunction($model): void
+    {
+        // Créer des enregistrements liés
+        $model->history()->create(['action' => 'created']);
+    }
 }
 ```
+
+### Hooks de mise à jour
+
+```php
+class ProductController extends APIController
+{
+    // Validation personnalisée
+    protected function updateManualValidationsFunction(array $data, $model): array
+    {
+        if (isset($data['price']) && $data['price'] < $model->cost) {
+            return ['price' => ['Le prix ne peut pas être inférieur au coût']];
+        }
+        return [];
+    }
+
+    // Avant la mise à jour
+    protected function updateBeforeUpdateFunction(array $data, $model): array
+    {
+        if (isset($data['name'])) {
+            $data['slug'] = Str::slug($data['name']);
+        }
+        return $data;
+    }
+
+    // Après la mise à jour
+    protected function updateAfterUpdateFunction($model): void
+    {
+        Cache::forget("product_{$model->id}");
+    }
+}
+```
+
+### Hooks de suppression
+
+```php
+class ProductController extends APIController
+{
+    // Avant la suppression
+    protected function deleteBeforeDeleteFunction($model): void
+    {
+        // Supprimer les fichiers associés
+        Storage::delete($model->images->pluck('path')->toArray());
+    }
+
+    // Après la suppression
+    protected function deleteAfterDeleteFunction($model): void
+    {
+        // Logger la suppression
+        Log::info("Product {$model->id} deleted");
+    }
+}
+```
+
+### Filtre manuel sur index
+
+```php
+class ProductController extends APIController
+{
+    protected function indexManualFilter($query, array $requestData)
+    {
+        // Ajouter des filtres personnalisés complexes
+        if (isset($requestData['category_slug'])) {
+            $query->whereHas('category', function ($q) use ($requestData) {
+                $q->where('slug', $requestData['category_slug']);
+            });
+        }
+
+        return $query;
+    }
+}
+```
+
+---
+
+## Exemples complets
+
+### Exemple 1 : API de blog
+
+#### Modèle
+
+```php
+namespace App\Models;
+
+use LaravelAdvancedApiController\Models\ModelBase;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Post extends ModelBase
+{
+    protected $fillable = ['title', 'content', 'user_id', 'published_at', 'status'];
+
+    protected array $dateCasts = [
+        'published_at' => 'd/m/Y H:i',
+    ];
+
+    protected array $enumCasts = [
+        'status' => [
+            'draft' => 'Brouillon',
+            'published' => 'Publié',
+            'archived' => 'Archivé',
+        ],
+    ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}
+```
+
+#### Contrôleur
+
+```php
+namespace App\Http\Controllers\API;
+
+use LaravelAdvancedApiController\Http\Controllers\APIController;
+use App\Models\Post;
+use Illuminate\Support\Str;
+
+class PostController extends APIController
+{
+    protected string $modelClass = Post::class;
+
+    protected array $storeValidationArray = [
+        'title' => 'required|string|max:255',
+        'content' => 'required|string',
+        'status' => 'in:draft,published,archived',
+    ];
+
+    protected array $updateValidationArray = [
+        'title' => 'string|max:255',
+        'content' => 'string',
+        'status' => 'in:draft,published,archived',
+    ];
+
+    protected array $indexSearchFieldList = ['title', 'content'];
+    protected array $indexWithArray = ['user'];
+
+    protected function storeBeforeCreateFunction(array $data): array
+    {
+        $data['slug'] = Str::slug($data['title']);
+        $data['user_id'] = auth()->id();
+
+        if ($data['status'] === 'published' && !isset($data['published_at'])) {
+            $data['published_at'] = now();
+        }
+
+        return $data;
+    }
+
+    protected function indexManualFilter($query, array $requestData)
+    {
+        // Seuls les posts publiés pour les non-admins
+        if (!auth()->user()?->isAdmin()) {
+            $query->where('status', 'published');
+        }
+
+        return $query;
+    }
+}
+```
+
+#### Routes
+
+```php
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('posts', PostController::class);
+});
+```
+
+#### Utilisation
+
+```bash
+# Lister les posts publiés avec leurs auteurs
+GET /api/posts?with_user=true&in_status=published&order_by_desc=published_at
+
+# Rechercher dans les posts
+GET /api/posts?search=Laravel
+
+# Créer un post
+POST /api/posts
+{
+    "title": "Mon premier article",
+    "content": "Contenu de l'article...",
+    "status": "draft"
+}
+```
+
+---
+
+### Exemple 2 : E-commerce avec permissions
+
+#### Modèle Product
+
+```php
+namespace App\Models;
+
+use LaravelAdvancedApiController\Models\ModelBase;
+
+class Product extends ModelBase
+{
+    protected $fillable = ['name', 'description', 'price', 'cost', 'stock', 'is_active'];
+
+    protected array $moneyCasts = ['price', 'cost'];
+    protected array $booleanCasts = ['is_active'];
+}
+```
+
+#### Policy
+
+```php
+namespace App\Policies;
+
+use LaravelAdvancedApiController\Policies\BasePolicy;
+use App\Models\User;
+use App\Models\Product;
+
+class ProductPolicy extends BasePolicy
+{
+    protected string $subject = 'product';
+
+    public function before(User $user, string $ability): ?bool
+    {
+        if ($user->profile === 'admin') {
+            return true;
+        }
+
+        return null;
+    }
+
+    public function viewAny(User $user): bool
+    {
+        // Tout le monde peut voir les produits
+        return true;
+    }
+
+    public function create(User $user): bool
+    {
+        return $this->checkCustomPermission($user, ['create'], $this->subject);
+    }
+
+    public function update(User $user, Product $product): bool
+    {
+        return $this->checkCustomPermission($user, ['update'], $this->subject);
+    }
+
+    public function updatePrice(User $user, Product $product): bool
+    {
+        // Seuls les admins et managers peuvent modifier les prix
+        return in_array($user->profile, ['admin', 'manager']);
+    }
+}
+```
+
+#### Contrôleur
+
+```php
+namespace App\Http\Controllers\API;
+
+use LaravelAdvancedApiController\Http\Controllers\APIController;
+use App\Models\Product;
+
+class ProductController extends APIController
+{
+    protected string $modelClass = Product::class;
+
+    protected array $storeValidationArray = [
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'price' => 'required|numeric|min:0',
+        'cost' => 'required|numeric|min:0',
+        'stock' => 'required|integer|min:0',
+        'is_active' => 'boolean',
+    ];
+
+    protected array $updateValidationArray = [
+        'name' => 'string|max:255',
+        'description' => 'nullable|string',
+        'price' => 'numeric|min:0',
+        'cost' => 'numeric|min:0',
+        'stock' => 'integer|min:0',
+        'is_active' => 'boolean',
+    ];
+
+    protected array $indexSearchFieldList = ['name', 'description'];
+
+    protected bool $indexCheckAbility = false; // Désactiver pour viewAny
+
+    protected function updateManualValidationsFunction(array $data, $model): array
+    {
+        // Vérifier la permission pour modifier le prix
+        if (isset($data['price'])) {
+            if (!auth()->user()->can('updatePrice', $model)) {
+                return ['price' => ['Vous n\'avez pas la permission de modifier le prix']];
+            }
+        }
+
+        // Vérifier que le prix est supérieur au coût
+        if (isset($data['price']) && $data['price'] < ($data['cost'] ?? $model->cost)) {
+            return ['price' => ['Le prix doit être supérieur au coût']];
+        }
+
+        return [];
+    }
+
+    protected function storeAfterCommitFunction($model): void
+    {
+        // Créer l'historique de stock
+        $model->stockHistory()->create([
+            'quantity' => $model->stock,
+            'type' => 'initial',
+            'user_id' => auth()->id(),
+        ]);
+    }
+}
+```
+
+#### Configuration des ability_rules
+
+```php
+// Pour un utilisateur "manager"
+$user->ability_rules = [
+    [
+        'subject' => ['product'],
+        'action' => ['read', 'create', 'update'],
+    ],
+];
+
+// Pour un utilisateur "seller"
+$user->ability_rules = [
+    [
+        'subject' => ['product'],
+        'action' => ['read'],
+    ],
+];
+```
+
+---
+
+## Tests
+
+La librairie inclut des tests PHPUnit pour assurer la qualité du code.
+
+### Exécuter les tests
+
+```bash
+composer test
+```
+
+### Tests disponibles
+
+- Tests du contrôleur API (CRUD complet)
+- Tests des filtres (basiques, min/max, IN/NOT IN, etc.)
+- Tests de la pagination
+- Tests des relations
+- Tests de validation
+- Tests des permissions
+- Tests des hooks
+
+---
+
+## Changelog
+
+Consultez le fichier [CHANGELOG.md](CHANGELOG.md) pour voir l'historique complet des modifications.
+
+---
+
+## Contribution
+
+Les contributions sont les bienvenues! Voici comment contribuer :
+
+1. **Fork** le projet
+2. Créez votre **branche de fonctionnalité** (`git checkout -b feature/AmazingFeature`)
+3. **Committez** vos changements (`git commit -m 'Add some AmazingFeature'`)
+4. **Push** vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrez une **Pull Request**
+
+### Guidelines
+
+- Suivez les conventions de codage PSR-12
+- Ajoutez des tests pour les nouvelles fonctionnalités
+- Mettez à jour la documentation si nécessaire
+- Assurez-vous que tous les tests passent
+
+---
+
+## License
+
+Ce projet est sous licence MIT. Consultez le fichier [LICENSE](LICENSE) pour plus de détails.
+
+Copyright (c) 2024 Charles GAMLIGO
+
+---
+
+## Auteur
+
+**Charles GAMLIGO** (Mawena)
+- Email: gamligocharles@gmail.com
+- GitHub: [@mawena](https://github.com/mawena)
+
+---
 
 ## Support
 
-Pour toute question ou problème, veuillez ouvrir une issue sur le repository GitHub.
+- **Issues**: [GitHub Issues](https://github.com/mawena/maravel/issues)
+- **Source**: [GitHub Repository](https://github.com/mawena/maravel)
 
-## Licence
+---
 
-Cette librairie est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
+## Remerciements
+
+Merci à tous les contributeurs qui ont participé au développement de cette librairie.
+
+---
+
+**Maravel** - Accélérez votre développement d'API Laravel avec élégance et puissance.

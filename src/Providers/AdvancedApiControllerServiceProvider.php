@@ -7,6 +7,7 @@ use Maravel\Http\Controllers\APIController;
 use Maravel\Console\Commands\MakeController;
 use Maravel\Console\Commands\MakeModel;
 use Maravel\Console\Commands\MakePolicy;
+use Maravel\Console\Commands\InstallCommand;
 
 class AdvancedApiControllerServiceProvider extends ServiceProvider
 {
@@ -31,6 +32,7 @@ class AdvancedApiControllerServiceProvider extends ServiceProvider
 
 			// Enregistrement des commandes personnalisées
 			$this->commands([
+				InstallCommand::class,
 				MakeController::class,
 				MakeModel::class,
 				MakePolicy::class,

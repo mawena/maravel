@@ -57,6 +57,7 @@
 - **Méthodes dynamiques** : Ajout de casts personnalisés à la volée
 
 ### 🛠️ Commandes Artisan
+- `maravel:install` : Installe et configure automatiquement Maravel (API, AuthController, config)
 - `make:maravel.controller` : Génère un contrôleur API complet avec CRUD, validation, hooks
 - `make:maravel.model` : Génère un modèle avec ModelBase et formatage automatique
 - `make:maravel.policy` : Génère une policy avancée avec système de permissions
@@ -89,9 +90,52 @@ composer require mawena/maravel
 
 Le service provider sera automatiquement enregistré grâce à l'auto-discovery de Laravel.
 
-### Publication de la configuration (optionnel)
+### Installation automatique
 
-Pour personnaliser la configuration, publiez le fichier de configuration :
+Une fois la librairie installée, lancez la commande d'installation pour configurer automatiquement votre projet :
+
+```bash
+php artisan maravel:install
+```
+
+Cette commande effectue automatiquement les actions suivantes :
+- 📦 Installation de Laravel Sanctum et configuration API (`php artisan install:api`)
+- 🔐 Création du contrôleur `AuthController` dans `app/Http/Controllers/API/`
+- 🛣️ Configuration automatique du fichier `routes/api.php` avec les routes d'authentification
+- ⚙️ Publication du fichier de configuration `config/advanced-api-controller.php`
+
+Le contrôleur `AuthController` créé inclut les méthodes suivantes :
+- `login()` : Authentification des utilisateurs
+- `data()` : Récupération des données de l'utilisateur connecté
+- `logout()` : Déconnexion de l'utilisateur
+
+**Routes configurées automatiquement** dans `routes/api.php` :
+```php
+use App\Http\Controllers\API\AuthController;
+use Illuminate\Support\Facades\Route;
+
+Route::controller(AuthController::class)->group(function () {
+    Route::post("auth/login", "login");
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::prefix("/auth")->name("auth.")->group(function () {
+            Route::get('data', "data")->name("data");
+            Route::delete('logout', "logout")->name("logout");
+        });
+
+        //Route suplémentaire sous autorisation
+    });
+});
+```
+
+**Endpoints disponibles** :
+- `POST /api/auth/login` - Connexion
+- `GET /api/auth/data` - Données utilisateur (authentifié)
+- `DELETE /api/auth/logout` - Déconnexion (authentifié)
+
+### Publication manuelle de la configuration (optionnel)
+
+Si vous souhaitez uniquement publier le fichier de configuration sans exécuter l'installation complète :
 
 ```bash
 php artisan vendor:publish --provider="Maravel\Providers\AdvancedApiControllerServiceProvider" --tag="advanced-api-controller-config"
@@ -632,7 +676,30 @@ class MyController extends Controller
 
 ### Commandes Artisan
 
-Maravel fournit deux commandes personnalisées qui **coexistent** avec les commandes Laravel standard. Les commandes par défaut (`make:controller`, `make:policy`) restent disponibles et fonctionnelles.
+Maravel fournit plusieurs commandes personnalisées qui **coexistent** avec les commandes Laravel standard. Les commandes par défaut (`make:controller`, `make:policy`) restent disponibles et fonctionnelles.
+
+#### maravel:install
+
+Installe et configure automatiquement Maravel dans votre projet Laravel :
+
+```bash
+php artisan maravel:install
+```
+
+**Ce qui est exécuté automatiquement** :
+- ✅ Installation de Laravel Sanctum et configuration API (`php artisan install:api`)
+- ✅ Création du contrôleur AuthController dans `app/Http/Controllers/API/`
+- ✅ Configuration automatique des routes d'authentification dans `routes/api.php`
+- ✅ Publication du fichier de configuration `config/advanced-api-controller.php`
+
+**Avantages** :
+- Configuration rapide et sans erreur
+- AuthController prêt à l'emploi avec login, logout et récupération des données utilisateur
+- Routes d'authentification configurées automatiquement (plus besoin de les ajouter manuellement)
+- Support complet de Laravel Sanctum pour l'authentification API
+- Structure de routes organisée avec groupes et préfixes
+
+**Recommandation** : Lancez cette commande immédiatement après `composer require mawena/maravel` pour configurer votre projet en une seule commande.
 
 #### make:maravel.controller
 
@@ -717,6 +784,7 @@ php artisan make:maravel.policy ProductPolicy
 
 | Commande | Description |
 |----------|-------------|
+| `maravel:install` | **Commande unique Maravel** - installe et configure automatiquement Maravel (API + AuthController + config) |
 | `make:controller` | Commande Laravel standard - génère un contrôleur vide |
 | `make:maravel.controller` | Commande Maravel - génère un contrôleur API complet avec APIController |
 | `make:model` | Commande Laravel standard - génère un modèle basique |
@@ -727,6 +795,10 @@ php artisan make:maravel.policy ProductPolicy
 #### Exemples d'utilisation complète
 
 ```bash
+# Installation initiale de Maravel
+composer require mawena/maravel
+php artisan maravel:install  # Configure automatiquement l'API et crée AuthController
+
 # Workflow complet : Créer un modèle avec tout
 php artisan make:maravel.model Product --all
 # Cela crée : Model + Migration + Controller + Policy

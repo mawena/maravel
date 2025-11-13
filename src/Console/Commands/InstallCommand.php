@@ -35,7 +35,7 @@ class InstallCommand extends Command
 
         // Étape 1: Installer l'API Laravel
         $this->info('📦 Installation de Laravel Sanctum et configuration API...');
-        $this->call('install:api', ['--without-interaction' => true]);
+        $this->call('install:api', ['--no-interaction' => true]);
         $this->newLine();
 
         // Étape 2: Créer le contrôleur AuthController

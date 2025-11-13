@@ -1,6 +1,6 @@
 # Maravel
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.4.3-blue.svg)
 ![PHP](https://img.shields.io/badge/php-%5E8.1%7C%5E8.2%7C%5E8.3%7C%5E8.4-777BB4.svg)
 ![Laravel](https://img.shields.io/badge/laravel-%5E10.0%7C%5E11.0%7C%5E12.0-FF2D20.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -102,12 +102,21 @@ Cette commande effectue automatiquement les actions suivantes :
 - 📦 Installation de Laravel Sanctum et configuration API (`php artisan install:api`)
 - 🔐 Création du contrôleur `AuthController` dans `app/Http/Controllers/API/`
 - 🛣️ Configuration automatique du fichier `routes/api.php` avec les routes d'authentification
+- 👤 Création de la migration pour ajouter la colonne `profile` à la table `users`
+- 🔧 Configuration du modèle `User` pour hériter de `AuthenticatableBase`
 - ⚙️ Publication du fichier de configuration `config/advanced-api-controller.php`
 
 Le contrôleur `AuthController` créé inclut les méthodes suivantes :
 - `login()` : Authentification des utilisateurs
 - `data()` : Récupération des données de l'utilisateur connecté
 - `logout()` : Déconnexion de l'utilisateur
+
+Le modèle `User` est automatiquement configuré avec :
+- Héritage de `AuthenticatableBase` (au lieu de `Authenticatable`)
+- Champ `profile` dans `$fillable`
+- Casts d'énumération pour le profil (`admin` → Administrateur, `user` → Utilisateur)
+- Méthode `getAbilityRulesAttribute()` pour le système de permissions
+- Attribut `ability_rules` dans `$appends`
 
 **Routes configurées automatiquement** dans `routes/api.php` :
 ```php
@@ -132,6 +141,19 @@ Route::controller(AuthController::class)->group(function () {
 - `POST /api/auth/login` - Connexion
 - `GET /api/auth/data` - Données utilisateur (authentifié)
 - `DELETE /api/auth/logout` - Déconnexion (authentifié)
+
+**Migration créée** : `xxxx_xx_xx_xxxxxx_add_profile_to_users_table.php`
+```php
+Schema::table('users', function (Blueprint $table) {
+    $table->enum('profile', ['admin', 'other'])->default('other')->after('email');
+});
+```
+
+**Système de permissions** : Le modèle User est configuré avec un système de permissions basé sur les profils :
+- **admin** : Accès complet à toutes les ressources (`['subject' => ['all'], 'action' => ['manage']]`)
+- **other** : Pas de permissions par défaut (à personnaliser selon vos besoins)
+
+Vous pouvez étendre les permissions en modifiant la méthode `getAbilityRulesAttribute()` dans `app/Models/User.php`.
 
 ### Publication manuelle de la configuration (optionnel)
 
@@ -690,6 +712,8 @@ php artisan maravel:install
 - ✅ Installation de Laravel Sanctum et configuration API (`php artisan install:api`)
 - ✅ Création du contrôleur AuthController dans `app/Http/Controllers/API/`
 - ✅ Configuration automatique des routes d'authentification dans `routes/api.php`
+- ✅ Création de la migration pour ajouter la colonne `profile` (enum: admin, other)
+- ✅ Configuration du modèle User avec AuthenticatableBase et système de permissions
 - ✅ Publication du fichier de configuration `config/advanced-api-controller.php`
 
 **Avantages** :
@@ -698,6 +722,8 @@ php artisan maravel:install
 - Routes d'authentification configurées automatiquement (plus besoin de les ajouter manuellement)
 - Support complet de Laravel Sanctum pour l'authentification API
 - Structure de routes organisée avec groupes et préfixes
+- Système de permissions prêt à l'emploi avec profils utilisateur (admin, user)
+- Modèle User configuré avec AuthenticatableBase et ability_rules
 
 **Recommandation** : Lancez cette commande immédiatement après `composer require mawena/maravel` pour configurer votre projet en une seule commande.
 

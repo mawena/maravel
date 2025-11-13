@@ -5,6 +5,45 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.3] - 2024-11-13
+
+### Ajouté
+- **Commande d'installation automatique** `maravel:install`
+  - Installation automatique de Laravel Sanctum et configuration API
+  - Création automatique du contrôleur AuthController dans `app/Http/Controllers/API/`
+  - Configuration automatique des routes d'authentification dans `routes/api.php`
+  - Création automatique de la migration pour ajouter la colonne `profile` (enum: admin, other)
+  - Configuration automatique du modèle User avec AuthenticatableBase
+  - Publication automatique du fichier de configuration
+- **Stub AuthController** avec méthodes login, logout et data
+- **Stub de migration** pour ajouter le profil utilisateur à la table users
+- **Stub du modèle User** configuré avec :
+  - Héritage de AuthenticatableBase
+  - Champ profile dans $fillable
+  - Casts d'énumération pour le profil (admin, other)
+  - Méthode getAbilityRulesAttribute() pour le système de permissions
+  - Attribut ability_rules dans $appends
+- **Stub des routes API** avec structure organisée (controller groups, prefixes, middleware)
+- **Routes d'authentification** prêtes à l'emploi :
+  - POST /api/auth/login - Connexion utilisateur
+  - GET /api/auth/data - Récupération des données utilisateur (authentifié)
+  - DELETE /api/auth/logout - Déconnexion utilisateur (authentifié)
+- **Système de permissions** basé sur les profils :
+  - Profil admin avec accès complet (subject: all, action: manage)
+  - Profil other sans permissions par défaut (personnalisable)
+- **Confirmations interactives** pour éviter d'écraser les fichiers existants
+
+### Amélioré
+- **Documentation README.md** avec section complète sur l'installation automatique
+- **Expérience développeur** - Configuration complète en une seule commande
+- **Intégration Laravel Sanctum** - Setup automatique pour l'authentification API
+- **Sécurité** - Détection et confirmation avant remplacement de fichiers existants
+
+### Changé
+- Les utilisateurs n'ont plus besoin de configurer manuellement les routes d'authentification
+- Le modèle User est automatiquement configuré avec le système de permissions
+- L'installation complète se fait désormais avec `php artisan maravel:install`
+
 ## [2.0.0] - 2024-01-XX
 
 ### Ajouté

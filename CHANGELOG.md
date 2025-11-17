@@ -5,6 +5,10 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.7] - 2024-11-17
+### Modifié
+- **La fonction deletePublicUploadedFile de APIController a été changé de private vers protected** 
+
 ## [2.4.6] - 2024-11-17
 
 ### Réparé

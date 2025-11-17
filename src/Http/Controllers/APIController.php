@@ -587,7 +587,7 @@ class APIController extends BaseController
 	/**
 	 * Supprime un fichier du disque 'public' s'il est dans 'uploads/'.
 	 */
-	private function deletePublicUploadedFile(?string $relativePath): void
+	protected function deletePublicUploadedFile(?string $relativePath): void
 	{
 		if (!$relativePath) {
 			return;

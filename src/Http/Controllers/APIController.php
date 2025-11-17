@@ -587,7 +587,7 @@ class APIController extends BaseController
 	/**
 	 * Supprime un fichier du disque 'public' s'il est dans 'uploads/'.
 	 */
-	protected function deletePublicUploadedFile(?string $relativePath): void
+	private function deletePublicUploadedFile(?string $relativePath): void
 	{
 		if (!$relativePath) {
 			return;
@@ -611,5 +611,23 @@ class APIController extends BaseController
 				// on ignore les erreurs de suppression
 			}
 		}
+	}
+
+	/**
+	 * Supprime récursivement un répertoire
+	 */
+	private function deleteDirectory($dir)
+	{
+		if (!is_dir($dir)) {
+			return false;
+		}
+
+		$files = array_diff(scandir($dir), ['.', '..']);
+		foreach ($files as $file) {
+			$path = $dir . DIRECTORY_SEPARATOR . $file;
+			is_dir($path) ? $this->deleteDirectory($path) : unlink($path);
+		}
+
+		return rmdir($dir);
 	}
 }

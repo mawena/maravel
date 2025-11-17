@@ -2,17 +2,18 @@
 
 namespace Maravel\Http\Controllers;
 
-use Maravel\Http\Traits\ControllerHelperTrait;
-use Maravel\Http\Traits\CustomResponseTrait;
-use Maravel\Http\Traits\ScriptGeneratorTrait;
-use Maravel\Http\Traits\PermissionCheckerTrait;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Foundation\Validation\ValidatesRequests;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
+use Maravel\Http\Traits\CustomResponseTrait;
+use Maravel\Http\Traits\ScriptGeneratorTrait;
+use Maravel\Http\Traits\ControllerHelperTrait;
+use Maravel\Http\Traits\PermissionCheckerTrait;
+use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Foundation\Validation\ValidatesRequests;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class APIController extends BaseController
 {

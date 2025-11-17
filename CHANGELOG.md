@@ -5,7 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.4.3] - 2024-11-13
+## [2.4.5] - 2024-11-17
+
+### Réparé
+- **Réparatiaon du bug d'importation de Str dans APIController** 
+
+
+## [2.4.4] - 2024-11-17
 
 ### Ajouté
 - **Fonctions pour gérer l'upload des gros fichiers dans l'APIController** 

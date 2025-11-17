@@ -8,6 +8,14 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [2.4.3] - 2024-11-13
 
 ### Ajouté
+- **Fonctions pour gérer l'upload des gros fichiers dans l'APIController** 
+  - uploadChunk()
+  - mergeChunks()
+  - deletePublicUploadedFile()
+
+## [2.4.3] - 2024-11-13
+
+### Ajouté
 - **Commande d'installation automatique** `maravel:install`
   - Installation automatique de Laravel Sanctum et configuration API
   - Création automatique du contrôleur AuthController dans `app/Http/Controllers/API/`

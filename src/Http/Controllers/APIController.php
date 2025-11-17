@@ -464,4 +464,150 @@ class APIController extends BaseController
 			return $this->responseError(["id" => ["$elementName n'existe pas"]], 404);
 		}
 	}
+
+	/**
+	 * Uploader parties d'un fichier
+	 *
+	 * @urlParam	file										string				La partie du fichier.														Example: ...
+	 * @urlParam	index										integer				L'id de la partie du fichier.												Example: 1
+	 * @urlParam	filename									string				Le nom du fichier.															Example: test
+	 *
+	 * @response 200
+	 */
+	public function uploadChunk(Request $request)
+	{
+		$chunk = $request->file('file');
+		$index = (string) $request->input('index');     // on stocke les noms de fichiers en string
+		$filename = (string) $request->input('filename');
+
+		if (!$chunk || !$chunk->isValid() || $index === '' || $filename === '') {
+			return response()->json(['error' => 'Chunk invalide'], 422);
+		}
+
+		$filenameSlug = Str::slug(pathinfo($filename, PATHINFO_FILENAME));
+		$extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+		$safeFileName = $filenameSlug . '.' . $extension;
+
+		$tmpPath = storage_path("app/tmp/$safeFileName");
+		if (!is_dir($tmpPath) && !mkdir($tmpPath, 0775, true) && !is_dir($tmpPath)) {
+			return response()->json(['error' => 'Impossible de créer le dossier tmp'], 500);
+		}
+
+		// On force un nom "index" (sans extension) pour éviter les tris lexicographiques bizarres
+		$chunk->move($tmpPath, $index);
+
+		return response()->json(['status' => 'chunk uploaded']);
+	}
+
+	/**
+	 * Fusionner les partie d'un fichier uploadé
+	 *
+	 * @urlParam	filename									string				Le nom du fichier.															Example: test
+	 *
+	 * @response 200
+	 */
+	public function mergeChunks(Request $request)
+	{
+		$filename = (string) $request->input('filename');
+		if ($filename === '') {
+			return response()->json(['error' => 'filename manquant'], 422);
+		}
+
+		$filenameSlug = Str::slug(pathinfo($filename, PATHINFO_FILENAME));
+		$extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+		$safeFileName = $filenameSlug . '.' . $extension;
+
+		$tmpPath = storage_path("app/tmp/$safeFileName");
+		if (!is_dir($tmpPath)) {
+			return response()->json(['error' => 'Chunks introuvables'], 404);
+		}
+
+		// 1) Lister uniquement les fichiers dont le nom est numérique
+		$files = array_values(array_filter(scandir($tmpPath), function ($f) use ($tmpPath) {
+			return $f !== '.' && $f !== '..' && ctype_digit($f) && is_file("$tmpPath/$f");
+		}));
+
+		if (empty($files)) {
+			return response()->json(['error' => 'Aucun chunk valide'], 400);
+		}
+
+		// 2) Trier NUMÉRIQUEMENT (et non lexicalement)
+		usort($files, function ($a, $b) {
+			return (int) $a <=> (int) $b;
+		});
+
+		// 3) Dossier final horodaté
+		$timestamp = time();
+		$finalDir = storage_path("app/public/uploads/$timestamp");
+		if (!is_dir($finalDir) && !mkdir($finalDir, 0775, true) && !is_dir($finalDir)) {
+			return response()->json(['error' => 'Impossible de créer le dossier final'], 500);
+		}
+
+		$finalPath = "$finalDir/$safeFileName";
+
+		// 4) Fusion binaire avec verrou
+		$final = fopen($finalPath, 'wb');  // 'wb' puis on écrit chaque chunk séquentiellement
+		if ($final === false) {
+			return response()->json(['error' => 'Impossible de créer le fichier final'], 500);
+		}
+		if (!flock($final, LOCK_EX)) {
+			fclose($final);
+
+			return response()->json(['error' => 'Impossible de verrouiller le fichier final'], 500);
+		}
+
+		foreach ($files as $chunkFile) {
+			$chunkPath = "$tmpPath/$chunkFile";
+			$chunk = fopen($chunkPath, 'rb');
+			if ($chunk === false) {
+				flock($final, LOCK_UN);
+				fclose($final);
+
+				return response()->json(['error' => "Lecture impossible du chunk $chunkFile"], 500);
+			}
+			stream_copy_to_stream($chunk, $final);
+			fclose($chunk);
+		}
+
+		fflush($final);
+		flock($final, LOCK_UN);
+		fclose($final);
+
+		// 5) Nettoyage
+		$this->deleteDirectory($tmpPath);
+
+		return response()->json([
+			'status' => 'file merged',
+			'file_path' => "uploads/$timestamp/$safeFileName",
+		]);
+	}
+
+	/**
+	 * Supprime un fichier du disque 'public' s'il est dans 'uploads/'.
+	 */
+	private function deletePublicUploadedFile(?string $relativePath): void
+	{
+		if (!$relativePath) {
+			return;
+		}
+
+		if (strpos($relativePath, 'uploads/') === 0) {
+			try {
+				$disk = Storage::disk('public');
+				$disk->delete($relativePath);
+
+				$directory = dirname($relativePath);
+				if ($directory && $directory !== '.' && strpos($directory, 'uploads/') === 0) {
+					$remainingFiles = $disk->files($directory);
+					$remainingDirs = $disk->directories($directory);
+
+					if (empty($remainingFiles) && empty($remainingDirs)) {
+						$disk->deleteDirectory($directory);
+					}
+				}
+			} catch (\Throwable $e) {
+				// on ignore les erreurs de suppression
+			}
+		}
+	}
 }

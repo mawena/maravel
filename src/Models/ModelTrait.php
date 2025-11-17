@@ -97,6 +97,7 @@ trait ModelTrait
 		foreach ($this->big_integer_casts as $column) {
 			if (array_key_exists($column, $this->attributes)) {
 				$formatted_name = $column . '_fr';
+				$data[$column] = (int) $this->attributes[$column];
 				$data[$formatted_name] = number_format((int) $this->attributes[$column], 0, ',', ' ');
 			}
 		}

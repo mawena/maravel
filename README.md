@@ -37,6 +37,8 @@
 - **CRUD complet** : Toutes les opérations (index, show, store, update, destroy) prêtes à l'emploi
 - **Création multiple** : Méthode `store_multiple()` pour créer plusieurs enregistrements en une seule requête
 - **Filtrage automatique** : Filtres basiques, min/max, IN/NOT IN, relations, recherche textuelle, JSON
+- **Reducers personnalisés** : Transformations post-requête via méthodes reducer dans les modèles
+- **Upload de gros fichiers** : Méthodes `uploadChunk()` et `mergeChunks()` pour fichiers volumineux
 - **Pagination intelligente** : Pagination automatique ou désactivable avec paramètres configurables
 - **Tri dynamique** : Tri ascendant/descendant sur n'importe quelle colonne
 - **Gestion des relations** : Chargement automatique des relations Eloquent via paramètres d'URL
@@ -54,6 +56,7 @@
 - **Conversion des booléens** : Transformation en format lisible
 - **Traduction des énumérations** : Support des enums avec traduction
 - **Formatage des décimaux** : Notation française avec virgule
+- **Big integers** : Conversion en int + formatage avec séparateurs de milliers (ex: 1 500 000)
 - **Méthodes dynamiques** : Ajout de casts personnalisés à la volée
 
 ### 🛠️ Commandes Artisan
@@ -64,9 +67,9 @@
 - **Note** : Les commandes Laravel par défaut (`make:controller`, `make:model`, `make:policy`) restent disponibles
 
 ### ⚡ Traits réutilisables
-- **ModelTrait** : Formatage automatique des données (dates, money, enums, booleans)
+- **ModelTrait** : Formatage automatique des données (dates, money, enums, booleans, big integers)
 - **CustomResponseTrait** : Formatage standardisé des réponses JSON avec encodage UTF-8
-- **ControllerHelperTrait** : Méthodes utilitaires pour les filtres, recherches, et fichiers
+- **ControllerHelperTrait** : Méthodes utilitaires pour les filtres, recherches, reducers et fichiers
 - **PermissionCheckerTrait** : Vérification des permissions simplifiée
 - **ScriptGeneratorTrait** : Génération de code automatique
 
@@ -346,6 +349,72 @@ class ProductController extends APIController
 - `update(Request $request, $id)` : Met à jour une ressource
 - `destroy($id)` : Supprime une ressource
 
+#### Gestion des uploads de gros fichiers
+
+L'APIController inclut des méthodes pour gérer l'upload de fichiers volumineux par chunks (morceaux) :
+
+##### uploadChunk()
+Permet de télécharger un fichier volumineux en plusieurs morceaux :
+
+```php
+// Route : POST /api/upload-chunk
+// Paramètres :
+// - file: Le morceau de fichier (UploadedFile)
+// - index: L'index du morceau (string/int)
+// - filename: Le nom du fichier complet
+
+// Exemple d'utilisation côté client (JavaScript) :
+const uploadFile = async (file) => {
+    const chunkSize = 1024 * 1024; // 1MB par chunk
+    const chunks = Math.ceil(file.size / chunkSize);
+
+    for (let i = 0; i < chunks; i++) {
+        const chunk = file.slice(i * chunkSize, (i + 1) * chunkSize);
+        const formData = new FormData();
+        formData.append('file', chunk);
+        formData.append('index', i);
+        formData.append('filename', file.name);
+
+        await fetch('/api/upload-chunk', {
+            method: 'POST',
+            body: formData
+        });
+    }
+};
+```
+
+##### mergeChunks()
+Fusionne tous les morceaux uploadés en un seul fichier :
+
+```php
+// Route : POST /api/merge-chunks
+// Paramètres :
+// - filename: Le nom du fichier à fusionner
+
+// Retourne :
+// {
+//   "status": "file merged",
+//   "file_path": "uploads/1234567890/mon-fichier.pdf"
+// }
+
+// Exemple d'utilisation :
+Route::post('/upload-chunk', [MyController::class, 'uploadChunk']);
+Route::post('/merge-chunks', [MyController::class, 'mergeChunks']);
+```
+
+**Fonctionnalités** :
+- Stockage temporaire des chunks dans `storage/app/tmp/`
+- Fusion sécurisée avec verrouillage de fichier
+- Nettoyage automatique des fichiers temporaires
+- Nom de fichier sécurisé (slug + extension)
+- Stockage final dans `storage/app/public/uploads/{timestamp}/`
+
+**Sécurité** :
+- Validation des chunks
+- Tri numérique correct des morceaux
+- Gestion des erreurs de lecture/écriture
+- Suppression récursive des répertoires temporaires
+
 ---
 
 ### ModelBase
@@ -359,7 +428,7 @@ use Maravel\Models\ModelBase;
 
 class Product extends ModelBase
 {
-    protected $fillable = ['name', 'price', 'stock', 'description'];
+    protected $fillable = ['name', 'price', 'stock', 'description', 'views_count'];
 
     // Définir les casts personnalisés
     protected array $dateCasts = [
@@ -372,6 +441,10 @@ class Product extends ModelBase
 
     protected array $booleanCasts = [
         'is_active',                 // Formaté en 'Oui'/'Non'
+    ];
+
+    protected array $big_integer_casts = [
+        'views_count',               // Converti en int + formaté avec espaces
     ];
 
     protected array $enumCasts = [
@@ -410,7 +483,15 @@ Les attributs suivants sont automatiquement ajoutés :
 
 - `created_at_fr` : Date de création formatée
 - `updated_at_fr` : Date de mise à jour formatée
-- `{field}_formatted` : Version formatée de chaque cast
+- `{field}_formatted` : Version formatée des booléens
+- `{field}_fr` : Version formatée des dates, montants, floats et big integers
+
+Exemple avec big_integer_casts :
+```php
+$product = Product::find(1);
+// $product->views_count => 1500000 (int)
+// $product->views_count_fr => "1 500 000" (string formatée)
+```
 
 ---
 
@@ -430,6 +511,8 @@ class MyModel extends Model
     protected $dateCasts = ['published_at' => 'd/m/Y'];
     protected $moneyCasts = ['price', 'cost'];
     protected $booleanCasts = ['is_active'];
+    protected $big_integer_casts = ['views_count', 'total_sales'];
+    protected $floatCasts = ['rating'];
     protected $enumCasts = [
         'status' => ['draft' => 'Brouillon', 'published' => 'Publié']
     ];
@@ -443,7 +526,20 @@ class MyModel extends Model
 - `addBooleanCast($column)` : Ajoute un cast booléen dynamiquement
 - `addEnumCast($column, $choices)` : Ajoute un cast enum dynamiquement
 - `addFloatCast($column)` : Ajoute un cast float dynamiquement
-- `addBigIntegerCast($column)` : Ajoute un cast big integer dynamiquement
+- `addBigIntegerCast($column)` : Ajoute un cast big integer dynamiquement (conversion en int + formatage avec espaces)
+
+#### Détails des casts
+
+##### big_integer_casts
+Convertit les grands entiers en int et ajoute une version formatée avec séparateurs de milliers :
+
+```php
+protected $big_integer_casts = ['views_count', 'total_sales'];
+
+// Résultat dans toArray() :
+// 'views_count' => 1500000        // Converti en int
+// 'views_count_fr' => '1 500 000' // Version formatée
+```
 
 #### Utilisation directe du trait
 
@@ -665,6 +761,50 @@ class MyController extends Controller
     }
 }
 ```
+
+##### Reducers personnalisés
+
+Le trait fournit également `reduceCollection()` qui permet d'appliquer des transformations personnalisées sur une collection après une requête SQL :
+
+```php
+// Dans votre modèle, définissez des méthodes "reducer"
+class Product extends ModelBase
+{
+    /**
+     * Reducer pour ajouter des statistiques
+     */
+    public function statsReducer($collection, $requestData)
+    {
+        // Ajouter des statistiques calculées
+        $collection->map(function ($item) {
+            $item->total_revenue = $item->price * $item->sold_count;
+            return $item;
+        });
+
+        return $collection;
+    }
+
+    /**
+     * Reducer pour filtrer selon l'utilisateur
+     */
+    public function userFilterReducer($collection, $requestData)
+    {
+        $userId = $requestData['user_id'] ?? null;
+        if ($userId) {
+            return $collection->where('user_id', $userId)->values();
+        }
+        return $collection;
+    }
+}
+
+// Utilisation dans la requête API :
+// GET /api/products?reduce_stats=true
+// GET /api/products?reduce_user_filter=true&user_id=5
+
+// Le système cherchera automatiquement les méthodes suffixées par "Reducer"
+```
+
+Les reducers sont automatiquement appliqués par l'APIController après l'exécution de la requête SQL, permettant des transformations complexes sans surcharger la requête.
 
 #### PermissionCheckerTrait
 
@@ -922,12 +1062,23 @@ GET /api/products?page=2
 GET /api/products?paginate=false
 ```
 
+### Reducers personnalisés
+
+Appliquer des transformations personnalisées après la requête :
+
+```
+GET /api/products?reduce_stats=true
+GET /api/products?reduce_user_filter=true&user_id=5
+```
+
+Les reducers sont définis dans le modèle (voir section ControllerHelperTrait).
+
 ### Combinaison de filtres
 
 Combiner plusieurs filtres :
 
 ```
-GET /api/products?search=phone&min<price=100&max<price=1000&in_status=active-featured&with_category=true&order_by_desc=created_at&per_page=20
+GET /api/products?search=phone&min<price=100&max<price=1000&in_status=active-featured&with_category=true&order_by_desc=created_at&per_page=20&reduce_stats=true
 ```
 
 ---

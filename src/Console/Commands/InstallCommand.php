@@ -113,7 +113,9 @@ class InstallCommand extends Command
 
         File::copy($stubPath, $targetPath);
 
-        $this->info('✓ AuthController créé : app/Http/Controllers/API/AuthController.php');
+        $this->info('✓ AuthController créé avec succès.');
+        $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $targetPath);
+        $this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
     }
 
     /**
@@ -153,7 +155,9 @@ class InstallCommand extends Command
         // Remplacer le contenu du fichier routes/api.php
         File::put($routesPath, $routesContent);
 
-        $this->info('✓ Fichier routes/api.php configuré avec les routes d\'authentification');
+        $this->info('✓ Fichier routes/api.php configuré avec succès.');
+        $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $routesPath);
+        $this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
         $this->newLine();
         $this->comment('Routes disponibles :');
         $this->line('• POST /api/auth/login - Connexion');
@@ -196,7 +200,9 @@ class InstallCommand extends Command
         // Copier le stub vers le fichier de migration
         File::copy($stubPath, $migrationPath);
 
-        $this->info('✓ Migration créée : ' . $migrationName);
+        $this->info('✓ Migration créée avec succès.');
+        $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $migrationPath);
+        $this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
     }
 
     /**
@@ -236,7 +242,9 @@ class InstallCommand extends Command
         // Remplacer le contenu du fichier User.php
         File::put($userModelPath, $userContent);
 
-        $this->info('✓ Modèle User configuré avec AuthenticatableBase');
+        $this->info('✓ Modèle User configuré avec succès.');
+        $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $userModelPath);
+        $this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
         $this->newLine();
         $this->comment('Modifications apportées :');
         $this->line('• Héritage de AuthenticatableBase');

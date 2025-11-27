@@ -118,6 +118,12 @@ class MakeModel extends GeneratorCommand
 
 		$modelName = $this->getNameInput();
 
+		// Afficher le chemin du fichier créé (relatif à la racine du projet)
+		$name = $this->qualifyClass($modelName);
+		$path = $this->getPath($name);
+		$relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $path);
+		$this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
+
 		// Afficher des informations supplémentaires
 		$this->line('');
 		$this->comment('Modèle créé avec les fonctionnalités suivantes :');

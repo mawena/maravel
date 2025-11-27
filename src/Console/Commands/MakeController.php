@@ -102,6 +102,10 @@ class MakeController extends GeneratorCommand
 
 		$this->info($this->type . ' created successfully.');
 
+		// Afficher le chemin du fichier créé (relatif à la racine du projet)
+		$relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $path);
+		$this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
+
 		// Afficher des informations supplémentaires
 		$this->line('');
 		$this->comment('Contrôleur créé avec les fonctionnalités suivantes :');

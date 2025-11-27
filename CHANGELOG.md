@@ -5,6 +5,10 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2024-11-17
+### Ajouté
+- **Ajout des fonctionnalité de reduce après requêtes sql** 
+
 ## [2.4.9] - 2024-11-17
 ### Ajouté
 - **Ajout de la conversion en int des éléments présents dans big_integer_casts dans ModelTrait** 

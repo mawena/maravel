@@ -1,12 +1,12 @@
 <?php
 
-namespace LaravelApiController\Tests;
+namespace Maravel\Tests;
 
 use Orchestra\Testbench\TestCase;
-use LaravelApiController\Http\Controllers\APIController;
-use LaravelApiController\Http\Traits\CustomResponseTrait;
-use LaravelApiController\Http\Traits\ControllerHelperTrait;
-use LaravelApiController\Http\Traits\ScriptGeneratorTrait;
+use Maravel\Http\Controllers\APIController;
+use Maravel\Http\Traits\CustomResponseTrait;
+use Maravel\Http\Traits\ControllerHelperTrait;
+use Maravel\Http\Traits\ScriptGeneratorTrait;
 
 class APIControllerTest extends TestCase
 {
@@ -52,7 +52,7 @@ class APIControllerTest extends TestCase
 	protected function getPackageProviders($app)
 	{
 		return [
-			\LaravelApiController\Providers\ApiControllerServiceProvider::class,
+			\Maravel\Providers\ApiControllerServiceProvider::class,
 		];
 	}
 

@@ -214,7 +214,7 @@ class APIController extends BaseController
                 }
             }
             $model = $this->modelRelationLoad($model, $requestData, $this->modelName);
-            $model = $this->mapCollection([$model], $requestData)[0];
+            $model = $this->reduceCollection(collect([$model]), $requestData)[0];
             return $this->responseOk([$this->modelName => $model]);
         } else {
             return $this->responseError(["id" => ["l'élément n'existe pas"]], 404);

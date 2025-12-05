@@ -5,6 +5,10 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.2] - 2024-12-4
+### Ajouté
+- **Réparation du bug dû à l'appel de la mauvaise fonction dans le show(APIController) pour appliquer le reduce après requête** 
+
 ## [2.5.1] - 2024-11-17
 ### Ajouté
 - **Ajout des fonctionnalité de reduce après requêtes sql** 

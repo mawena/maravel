@@ -5,6 +5,8 @@ namespace App\Http\Controllers\API;
 use LaravelApiController\Http\Controllers\APIController;
 use App\Models\User;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 /**
  * Exemple d'utilisation de la librairie Laravel API Controller
@@ -216,4 +218,62 @@ class UserController extends APIController
 
 			return $query;
 		};
+
+	/**
+	 * Mettre à jour le mot de passe de l'utilisateur connecté
+	 *
+	 * @bodyParam    old_password                            string    required    L'ancien mot de passe de l'utilisateur.                                        No-example
+	 * @bodyParam    new_password                            string    required    Le nouveau mot de passe de l'utilisateur.                                    No-example
+	 * @bodyParam    new_password_confirmation                string    required    La confirmation du nouveau mot de passe de l'utilisateur.                    No-example
+	 *
+	 * @response 200
+	 *
+	 */
+	public function update_password(Request $request)
+	{
+		$model = $request->user();
+		return $this->modelUpdate(
+			modelId: $model->id,
+			modelClass: "App\Models\User",
+			requestData: $request->all(),
+			validations: [
+				"old_password" => 'required|min:2',
+				"new_password" => 'required|min:8',
+				"new_password_confirmation" => 'required|min:8|same:new_password',
+			],
+			validationsText: [
+				"same" => "Ce mot de passe est différent"
+			],
+			manualValidations: function ($requestData, $model) {
+				if ($requestData["old_password"] == $requestData["new_password"]) {
+					return [
+						"errors" => ["new_password" => ["Le nouveau mot de passe doit être différent de l'ancien"]],
+						"status" => 400
+					];
+				}
+				if (Hash::check($requestData["old_password"], $model["password"])) {
+					return [
+						"data" => ["user" => $model]
+					];
+				} else {
+					return [
+						"errors" => ["old_password" => ["Ancien mot de passe incorect"]],
+						"status" => 400
+					];
+				}
+			},
+			beforeUpdate: function ($model, $requestData) {
+				return [
+					"password" => Hash::make($requestData["new_password"]),
+					"password_change_required" => false
+				];
+			},
+			afterUpdate: function ($requestData) use ($model) {
+				$model->tokens()->each(function ($token, $key) {
+					$token->delete();
+				});
+			},
+			authName: "update_password"
+		);
+	}
 }

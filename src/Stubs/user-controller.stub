@@ -1,0 +1,105 @@
+<?php
+
+namespace App\Http\Controllers\API;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
+use Maravel\Http\Controllers\APIController;
+
+/**
+ * @group Utilisateurs
+ *
+ * EndPoints pour gérer les utilisateurs
+ */
+class UserController extends APIController
+{
+    protected string $modelClass = User::class;
+
+    protected array $indexSearchFieldList = ['name', 'email'];
+
+    protected array $storeRelationArray = [];
+
+    protected array $updateRelationArray = [];
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->storeValidationArray = [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8',
+            'activated' => 'sometimes|boolean',
+            'password_change_required' => 'sometimes|boolean',
+        ];
+
+        $this->updateGetValidationArrayFunction = function (int $id) {
+            return [
+                'name' => 'sometimes|string|max:255',
+                'email' => 'sometimes|string|email|max:255|unique:users,email,' . $id,
+                'password' => 'sometimes|string|min:8',
+                'activated' => 'sometimes|boolean',
+                'password_change_required' => 'sometimes|boolean',
+            ];
+        };
+
+        $this->storeBeforeCreateFunction = function (array $requestData) {
+            if (isset($requestData['password'])) {
+                $requestData['password'] = Hash::make($requestData['password']);
+            }
+            return $requestData;
+        };
+
+        $this->updateBeforeUpdateFunction = function ($model, array $requestData) {
+            if (isset($requestData['password'])) {
+                $requestData['password'] = Hash::make($requestData['password']);
+            }
+            return $requestData;
+        };
+    }
+
+    /**
+     * Mettre à jour le mot de passe de l'utilisateur connecté
+     *
+     * @bodyParam current_password  string  required Le mot de passe actuel.     Example: oldpassword
+     * @bodyParam new_password      string  required Le nouveau mot de passe.    Example: newpassword
+     * @bodyParam new_password_confirmation string required La confirmation du nouveau mot de passe. Example: newpassword
+     *
+     * @response 200
+     */
+    public function updatePassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ], [
+            'current_password.required' => 'Le mot de passe actuel est requis',
+            'new_password.required' => 'Le nouveau mot de passe est requis',
+            'new_password.min' => 'Le nouveau mot de passe doit contenir au moins 8 caractères',
+            'new_password.confirmed' => 'La confirmation du mot de passe ne correspond pas',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->responseError($validator->errors()->toArray(), 400);
+        }
+
+        $user = $request->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return $this->responseError([
+                'current_password' => ['Le mot de passe actuel est incorrect']
+            ], 400);
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->password_change_required = false;
+        $user->save();
+
+        return $this->responseOk([
+            'message' => 'Mot de passe modifié avec succès',
+            'user' => $user
+        ]);
+    }
+}

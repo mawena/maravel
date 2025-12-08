@@ -5,6 +5,10 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.4] - 2024-12-8
+### Ajouté
+- **Ajout de la gestion du statut activé et du changement obligatoire du mot de passe via la commande maravel:install** 
+
 ## [2.5.3] - 2024-12-7
 ### Ajouté
 - **Ajout de la gestion du user activé/désactivé et du changement obligatoire de mot de passe** 

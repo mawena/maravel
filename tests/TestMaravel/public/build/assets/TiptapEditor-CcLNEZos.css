@@ -1,0 +1,1 @@
+.ProseMirror{padding:.5rem;min-block-size:15vh;outline:none}.ProseMirror p{margin-block-end:0}.ProseMirror p.is-editor-empty:first-child:before{block-size:0;color:#adb5bd;content:attr(data-placeholder);float:inline-start;pointer-events:none}

@@ -4,6 +4,7 @@ namespace Maravel\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
+use Maravel\Services\FileMerger;
 
 /**
  * Commande pour installer Maravel dans un projet Laravel
@@ -177,17 +178,6 @@ class InstallCommand extends Command
             return;
         }
 
-        // Lire le contenu actuel
-        $currentContent = File::get($routesPath);
-
-        // Vérifier si les routes d'authentification existent déjà
-        if (str_contains($currentContent, 'AuthController')) {
-            if (!$this->confirm('Le fichier routes/api.php contient déjà des références à AuthController. Voulez-vous le remplacer ?', false)) {
-                $this->warn('⚠️  Fichier routes/api.php non modifié.');
-                return;
-            }
-        }
-
         // Charger le stub des routes
         $stubPath = __DIR__ . '/../../Stubs/api-routes.stub';
 
@@ -196,12 +186,28 @@ class InstallCommand extends Command
             return;
         }
 
-        $routesContent = File::get($stubPath);
+        // Lire les contenus
+        $currentContent = File::get($routesPath);
+        $stubContent = File::get($stubPath);
 
-        // Remplacer le contenu du fichier routes/api.php
-        File::put($routesPath, $routesContent);
+        // Vérifier si les routes d'authentification existent déjà
+        $hasAuthController = str_contains($currentContent, 'AuthController');
+        $hasUserController = str_contains($currentContent, 'UserController');
 
-        $this->info('✓ Fichier routes/api.php configuré avec succès.');
+        if ($hasAuthController && $hasUserController) {
+            // Les routes existent déjà, on fusionne uniquement les use statements
+            $fileMerger = new FileMerger();
+            $mergedContent = $fileMerger->mergeApiRoutes($currentContent, $stubContent);
+            File::put($routesPath, $mergedContent);
+
+            $this->info('✓ Fichier routes/api.php mis à jour (fusion des use statements).');
+            $this->comment('  Les routes existantes ont été conservées.');
+        } else {
+            // Utiliser le stub complet (priorité à la librairie)
+            File::put($routesPath, $stubContent);
+            $this->info('✓ Fichier routes/api.php configuré avec succès.');
+        }
+
         $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $routesPath);
         $this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
         $this->newLine();
@@ -270,17 +276,6 @@ class InstallCommand extends Command
             return;
         }
 
-        // Lire le contenu actuel
-        $currentContent = File::get($userModelPath);
-
-        // Vérifier si le modèle hérite déjà de AuthenticatableBase
-        if (str_contains($currentContent, 'AuthenticatableBase')) {
-            if (!$this->confirm('Le modèle User hérite déjà de AuthenticatableBase. Voulez-vous le remplacer ?', false)) {
-                $this->warn('⚠️  Modèle User non modifié.');
-                return;
-            }
-        }
-
         // Charger le stub du modèle User
         $stubPath = __DIR__ . '/../../Stubs/user-model.stub';
 
@@ -289,21 +284,30 @@ class InstallCommand extends Command
             return;
         }
 
-        $userContent = File::get($stubPath);
+        // Lire les contenus
+        $currentContent = File::get($userModelPath);
+        $stubContent = File::get($stubPath);
 
-        // Remplacer le contenu du fichier User.php
-        File::put($userModelPath, $userContent);
+        // Fusionner les contenus
+        $fileMerger = new FileMerger();
+        $mergedContent = $fileMerger->mergeUserModel($currentContent, $stubContent);
 
-        $this->info('✓ Modèle User configuré avec succès.');
+        // Écrire le contenu fusionné
+        File::put($userModelPath, $mergedContent);
+
+        $this->info('✓ Modèle User configuré avec succès (fusion intelligente).');
         $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $userModelPath);
         $this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
         $this->newLine();
         $this->comment('Modifications apportées :');
-        $this->line('• Héritage de AuthenticatableBase');
-        $this->line('• Ajout du champ profile dans $fillable');
+        $this->line('• Fusion des use statements');
+        $this->line('• Héritage de AuthenticatableBase (priorité librairie)');
+        $this->line('• Fusion des traits existants');
+        $this->line('• Ajout des champs profile, activated, password_change_required dans $fillable');
         $this->line('• Configuration des $enumCasts pour le profil');
         $this->line('• Ajout de la méthode getAbilityRulesAttribute()');
         $this->line('• Ajout de $appends = [\'ability_rules\']');
+        $this->line('• Conservation de vos méthodes et propriétés existantes');
     }
 
     /**
@@ -355,20 +359,12 @@ class InstallCommand extends Command
         $targetDir = app_path('Http/Controllers/API');
         $targetPath = $targetDir . '/UserController.php';
 
-        // Vérifier si le contrôleur existe déjà
-        if (File::exists($targetPath)) {
-            if (!$this->confirm('Le contrôleur UserController existe déjà. Voulez-vous le remplacer ?', false)) {
-                $this->warn('⚠️  UserController non modifié.');
-                return;
-            }
-        }
-
         // Créer le répertoire s'il n'existe pas
         if (!File::isDirectory($targetDir)) {
             File::makeDirectory($targetDir, 0755, true);
         }
 
-        // Copier le stub vers le fichier cible
+        // Charger le stub
         $stubPath = __DIR__ . '/../../Stubs/user-controller.stub';
 
         if (!File::exists($stubPath)) {
@@ -376,9 +372,25 @@ class InstallCommand extends Command
             return;
         }
 
-        File::copy($stubPath, $targetPath);
+        $stubContent = File::get($stubPath);
 
-        $this->info('✓ UserController créé avec succès.');
+        // Vérifier si le contrôleur existe déjà
+        if (File::exists($targetPath)) {
+            // Fusionner avec l'existant
+            $currentContent = File::get($targetPath);
+            $fileMerger = new FileMerger();
+            $mergedContent = $fileMerger->mergeUserController($currentContent, $stubContent);
+            File::put($targetPath, $mergedContent);
+
+            $this->info('✓ UserController fusionné avec succès.');
+            $this->comment('  Les méthodes de la librairie ont été ajoutées/mises à jour.');
+            $this->comment('  Vos méthodes personnalisées ont été conservées.');
+        } else {
+            // Créer le fichier
+            File::put($targetPath, $stubContent);
+            $this->info('✓ UserController créé avec succès.');
+        }
+
         $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $targetPath);
         $this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
     }
@@ -392,20 +404,12 @@ class InstallCommand extends Command
         $targetDir = app_path('Policies');
         $targetPath = $targetDir . '/UserPolicy.php';
 
-        // Vérifier si la policy existe déjà
-        if (File::exists($targetPath)) {
-            if (!$this->confirm('La policy UserPolicy existe déjà. Voulez-vous la remplacer ?', false)) {
-                $this->warn('⚠️  UserPolicy non modifiée.');
-                return;
-            }
-        }
-
         // Créer le répertoire s'il n'existe pas
         if (!File::isDirectory($targetDir)) {
             File::makeDirectory($targetDir, 0755, true);
         }
 
-        // Copier le stub vers le fichier cible
+        // Charger le stub
         $stubPath = __DIR__ . '/../../Stubs/user-policy.stub';
 
         if (!File::exists($stubPath)) {
@@ -413,9 +417,25 @@ class InstallCommand extends Command
             return;
         }
 
-        File::copy($stubPath, $targetPath);
+        $stubContent = File::get($stubPath);
 
-        $this->info('✓ UserPolicy créée avec succès.');
+        // Vérifier si la policy existe déjà
+        if (File::exists($targetPath)) {
+            // Fusionner avec l'existant
+            $currentContent = File::get($targetPath);
+            $fileMerger = new FileMerger();
+            $mergedContent = $fileMerger->mergeUserPolicy($currentContent, $stubContent);
+            File::put($targetPath, $mergedContent);
+
+            $this->info('✓ UserPolicy fusionnée avec succès.');
+            $this->comment('  Les méthodes de la librairie ont été ajoutées/mises à jour.');
+            $this->comment('  Vos méthodes personnalisées ont été conservées.');
+        } else {
+            // Créer le fichier
+            File::put($targetPath, $stubContent);
+            $this->info('✓ UserPolicy créée avec succès.');
+        }
+
         $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $targetPath);
         $this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
 

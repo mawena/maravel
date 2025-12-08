@@ -1,6 +1,6 @@
 # Maravel
 
-![Version](https://img.shields.io/badge/version-2.5.4-blue.svg)
+![Version](https://img.shields.io/badge/version-2.6.0-blue.svg)
 ![PHP](https://img.shields.io/badge/php-%5E8.1%7C%5E8.2%7C%5E8.3%7C%5E8.4-777BB4.svg)
 ![Laravel](https://img.shields.io/badge/laravel-%5E10.0%7C%5E11.0%7C%5E12.0-FF2D20.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -104,10 +104,31 @@ php artisan maravel:install
 Cette commande effectue automatiquement les actions suivantes :
 - 📦 Installation de Laravel Sanctum et configuration API (`php artisan install:api`)
 - 🔐 Création du contrôleur `AuthController` dans `app/Http/Controllers/API/`
-- 🛣️ Configuration automatique du fichier `routes/api.php` avec les routes d'authentification
+- 👥 Création du contrôleur `UserController` avec gestion du changement de mot de passe
+- 🛡️ Création de la policy `UserPolicy` pour les permissions utilisateurs
+- 🛣️ Configuration automatique du fichier `routes/api.php` avec les routes d'authentification et utilisateurs
 - 👤 Création de la migration pour ajouter la colonne `profile` à la table `users`
+- 🔒 Création de la migration pour ajouter les colonnes `activated` et `password_change_required`
 - 🔧 Configuration du modèle `User` pour hériter de `AuthenticatableBase`
+- 🛡️ Intégration du middleware `AccountStatusMiddleware` pour vérifier le statut des comptes
 - ⚙️ Publication du fichier de configuration `config/advanced-api-controller.php`
+
+#### ✨ Fusion intelligente des fichiers existants
+
+**Nouvelle fonctionnalité (v2.6.0)** : La commande `maravel:install` utilise désormais un système de **fusion intelligente** pour préserver vos personnalisations :
+
+- **Pas de remplacement destructif** : Si les fichiers `User.php`, `UserController.php`, `UserPolicy.php` ou `api.php` existent déjà, ils sont **fusionnés** au lieu d'être remplacés
+- **Conservation de vos données** : Toutes vos méthodes, propriétés et routes personnalisées sont préservées
+- **Priorité à la librairie** : En cas de conflit (même nom de méthode/propriété), la version de la librairie est utilisée pour garantir la compatibilité
+- **Fusion intelligente** :
+  - **Use statements** : Fusion sans doublons
+  - **Traits** : Conservation et ajout des nouveaux
+  - **Propriétés de classe** : Fusion avec priorité aux valeurs de la librairie
+  - **Méthodes** : Ajout des nouvelles méthodes, mise à jour des existantes
+  - **Routes** : Fusion des use statements si les routes existent déjà
+- **Pas de confirmation** : L'installation est automatique et non-destructive
+
+**Exemple** : Si vous avez déjà ajouté des méthodes personnalisées dans `UserController`, elles seront conservées lors de l'exécution de `maravel:install`, et les méthodes de la librairie (comme `updatePassword()`) seront ajoutées ou mises à jour.
 
 Le contrôleur `AuthController` créé inclut les méthodes suivantes :
 - `login()` : Authentification des utilisateurs
@@ -117,13 +138,16 @@ Le contrôleur `AuthController` créé inclut les méthodes suivantes :
 Le modèle `User` est automatiquement configuré avec :
 - Héritage de `AuthenticatableBase` (au lieu de `Authenticatable`)
 - Champ `profile` dans `$fillable`
-- Casts d'énumération pour le profil (`admin` → Administrateur, `user` → Utilisateur)
+- Champs `activated` et `password_change_required` dans `$fillable` (v2.5.3+)
+- Casts d'énumération pour le profil (`admin` → Administrateur, `other` → Utilisateur)
+- Casts booléens pour `activated` et `password_change_required`
 - Méthode `getAbilityRulesAttribute()` pour le système de permissions
 - Attribut `ability_rules` dans `$appends`
 
 **Routes configurées automatiquement** dans `routes/api.php` :
 ```php
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::controller(AuthController::class)->group(function () {
@@ -135,7 +159,23 @@ Route::controller(AuthController::class)->group(function () {
             Route::delete('logout', "logout")->name("logout");
         });
 
-        //Route suplémentaire sous autorisation
+        // Route pour changer le mot de passe (accessible même si password_change_required)
+        Route::put('users/update-password', [UserController::class, 'updatePassword'])
+            ->name('user.update-password');
+
+        // Routes protégées par le middleware de statut de compte
+        Route::middleware('account.status')->group(function () {
+            // Routes utilisateurs CRUD
+            Route::prefix('users')->name('user.')->controller(UserController::class)->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('/', 'store')->name('store');
+                Route::get('/{id}', 'show')->name('show');
+                Route::put('/{id}', 'update')->name('update');
+                Route::delete('/{id}', 'destroy')->name('destroy');
+            });
+
+            // Routes supplémentaires sous autorisation
+        });
     });
 });
 ```
@@ -144,11 +184,27 @@ Route::controller(AuthController::class)->group(function () {
 - `POST /api/auth/login` - Connexion
 - `GET /api/auth/data` - Données utilisateur (authentifié)
 - `DELETE /api/auth/logout` - Déconnexion (authentifié)
+- `PUT /api/users/update-password` - Changer le mot de passe (authentifié, toujours accessible)
+- `GET /api/users` - Liste des utilisateurs (authentifié + statut actif)
+- `POST /api/users` - Créer un utilisateur (authentifié + statut actif)
+- `GET /api/users/{id}` - Voir un utilisateur (authentifié + statut actif)
+- `PUT /api/users/{id}` - Modifier un utilisateur (authentifié + statut actif)
+- `DELETE /api/users/{id}` - Supprimer un utilisateur (authentifié + statut actif)
 
-**Migration créée** : `xxxx_xx_xx_xxxxxx_add_profile_to_users_table.php`
+**Migrations créées** :
+
+1. `xxxx_xx_xx_xxxxxx_add_profile_to_users_table.php`
 ```php
 Schema::table('users', function (Blueprint $table) {
     $table->enum('profile', ['admin', 'other'])->default('other')->after('email');
+});
+```
+
+2. `xxxx_xx_xx_xxxxxx_add_account_status_to_users_table.php` (v2.5.3+)
+```php
+Schema::table('users', function (Blueprint $table) {
+    $table->boolean('activated')->default(true)->after('profile');
+    $table->boolean('password_change_required')->default(false)->after('activated');
 });
 ```
 
@@ -157,6 +213,14 @@ Schema::table('users', function (Blueprint $table) {
 - **other** : Pas de permissions par défaut (à personnaliser selon vos besoins)
 
 Vous pouvez étendre les permissions en modifiant la méthode `getAbilityRulesAttribute()` dans `app/Models/User.php`.
+
+**Gestion du statut des comptes** (v2.5.3+) :
+
+Le middleware `AccountStatusMiddleware` (alias : `account.status`) vérifie automatiquement :
+- **activated = false** : Bloque l'accès avec le message "Votre compte est désactivé"
+- **password_change_required = true** : Bloque l'accès avec le message "Vous devez changer votre mot de passe" (sauf pour la route `/users/update-password`)
+
+Ce middleware est automatiquement appliqué aux routes CRUD des utilisateurs, mais pas à la route de changement de mot de passe, permettant ainsi aux utilisateurs de changer leur mot de passe même si `password_change_required` est à `true`.
 
 ### Publication manuelle de la configuration (optionnel)
 
@@ -583,7 +647,15 @@ class User extends AuthenticatableBase
 {
     use HasApiTokens, Notifiable;
 
-    protected $fillable = ['name', 'email', 'password', 'profile'];
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'profile',
+        'activated',
+        'password_change_required',
+    ];
+
     protected $hidden = ['password', 'remember_token'];
 
     // Casts d'énumération pour le profil
@@ -594,6 +666,19 @@ class User extends AuthenticatableBase
             'manager' => 'Gestionnaire',
         ],
     ];
+
+    /**
+     * Get the attributes that should be cast.
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'activated' => 'boolean',
+            'password_change_required' => 'boolean',
+        ];
+    }
 
     /**
      * Règles d'abilités pour le système de permissions
@@ -645,6 +730,123 @@ ModelTrait (trait commun)
 ```
 
 Les deux classes utilisent le même trait `ModelTrait`, évitant ainsi la duplication de code.
+
+---
+
+### Gestion des utilisateurs et sécurité des comptes
+
+Maravel inclut un système complet de gestion des utilisateurs avec contrôle du statut des comptes (v2.5.3+).
+
+#### UserController
+
+Le contrôleur `UserController` est automatiquement créé lors de l'installation et inclut :
+
+- **Opérations CRUD complètes** : Liste, création, modification, suppression des utilisateurs
+- **Méthode updatePassword()** : Permet aux utilisateurs de changer leur mot de passe
+- **Validation automatique** : Règles de validation pour création et modification
+- **Hachage des mots de passe** : Les mots de passe sont automatiquement hachés
+- **Gestion du statut** : Support des champs `activated` et `password_change_required`
+
+**Méthode updatePassword** :
+```php
+// Route : PUT /api/users/update-password
+// Corps de la requête :
+{
+    "current_password": "ancien_mot_de_passe",
+    "new_password": "nouveau_mot_de_passe",
+    "new_password_confirmation": "nouveau_mot_de_passe"
+}
+
+// Réponse en cas de succès :
+{
+    "message": "Mot de passe modifié avec succès",
+    "user": { ... }
+}
+```
+
+Cette méthode :
+- Vérifie que le mot de passe actuel est correct
+- Valide le nouveau mot de passe (minimum 8 caractères)
+- Vérifie que la confirmation correspond
+- Met automatiquement `password_change_required` à `false` après changement
+
+#### AccountStatusMiddleware
+
+Le middleware `AccountStatusMiddleware` (alias : `account.status`) vérifie le statut du compte utilisateur avant d'autoriser l'accès aux routes protégées.
+
+**Vérifications effectuées** :
+
+1. **Compte désactivé** (`activated = false`) :
+   ```json
+   {
+       "error": "Votre compte est désactivé. Veuillez contacter l'administrateur."
+   }
+   ```
+   Code HTTP : 403
+
+2. **Changement de mot de passe requis** (`password_change_required = true`) :
+   ```json
+   {
+       "error": "Vous devez changer votre mot de passe avant de continuer."
+   }
+   ```
+   Code HTTP : 403
+
+**Important** : Le middleware n'est PAS appliqué à la route `/users/update-password`, permettant aux utilisateurs de changer leur mot de passe même si `password_change_required = true`.
+
+#### Utilisation du middleware
+
+Le middleware est automatiquement configuré dans `bootstrap/app.php` :
+
+```php
+->withMiddleware(function (Middleware $middleware) {
+    // Middleware Maravel pour vérifier le statut du compte
+    $middleware->alias([
+        'account.status' => \Maravel\Http\Middleware\AccountStatusMiddleware::class,
+    ]);
+})
+```
+
+Appliquez-le sur vos routes :
+
+```php
+// Sur un groupe de routes
+Route::middleware(['auth:sanctum', 'account.status'])->group(function () {
+    Route::apiResource('posts', PostController::class);
+    Route::apiResource('products', ProductController::class);
+});
+
+// Sur une route spécifique
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth:sanctum', 'account.status']);
+```
+
+#### Scénarios d'utilisation
+
+**1. Désactiver un utilisateur** :
+```php
+$user = User::find(5);
+$user->activated = false;
+$user->save();
+// L'utilisateur ne pourra plus accéder aux routes protégées par account.status
+```
+
+**2. Forcer le changement de mot de passe** :
+```php
+$user = User::find(5);
+$user->password_change_required = true;
+$user->save();
+// L'utilisateur devra changer son mot de passe avant d'accéder aux routes protégées
+```
+
+**3. Réactiver un compte** :
+```php
+$user = User::find(5);
+$user->activated = true;
+$user->password_change_required = false;
+$user->save();
+// L'utilisateur retrouve un accès complet
+```
 
 ---
 
@@ -851,10 +1053,15 @@ php artisan maravel:install
 **Ce qui est exécuté automatiquement** :
 - ✅ Installation de Laravel Sanctum et configuration API (`php artisan install:api`)
 - ✅ Création du contrôleur AuthController dans `app/Http/Controllers/API/`
-- ✅ Configuration automatique des routes d'authentification dans `routes/api.php`
+- ✅ Création du contrôleur UserController avec méthode `updatePassword()` (v2.5.3+)
+- ✅ Création de la policy UserPolicy pour les permissions utilisateurs (v2.5.3+)
+- ✅ Configuration automatique des routes d'authentification et utilisateurs dans `routes/api.php`
 - ✅ Création de la migration pour ajouter la colonne `profile` (enum: admin, other)
+- ✅ Création de la migration pour `activated` et `password_change_required` (v2.5.3+)
 - ✅ Configuration du modèle User avec AuthenticatableBase et système de permissions
+- ✅ Intégration du middleware `AccountStatusMiddleware` dans `bootstrap/app.php` (v2.5.3+)
 - ✅ Publication du fichier de configuration `config/advanced-api-controller.php`
+- ✅ **Fusion intelligente** des fichiers existants (v2.6.0+) : Vos personnalisations sont préservées
 
 **Avantages** :
 - Configuration rapide et sans erreur
@@ -864,8 +1071,10 @@ php artisan maravel:install
 - Structure de routes organisée avec groupes et préfixes
 - Système de permissions prêt à l'emploi avec profils utilisateur (admin, user)
 - Modèle User configuré avec AuthenticatableBase et ability_rules
+- **Fusion non-destructive** : Vos méthodes et propriétés personnalisées sont conservées
+- **Installation répétable** : Vous pouvez relancer la commande pour mettre à jour sans perte de données
 
-**Recommandation** : Lancez cette commande immédiatement après `composer require mawena/maravel` pour configurer votre projet en une seule commande.
+**Recommandation** : Lancez cette commande immédiatement après `composer require mawena/maravel` pour configurer votre projet en une seule commande. Vous pouvez aussi la relancer après une mise à jour de la librairie pour bénéficier des nouvelles fonctionnalités sans perdre vos personnalisations.
 
 #### make:maravel.controller
 

@@ -1,0 +1,4 @@
+pandas>=2.0.0
+openpyxl>=3.0.0
+num2words>=0.5.12
+

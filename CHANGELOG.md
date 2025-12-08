@@ -5,6 +5,26 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2024-12-8
+### Ajouté
+- **Fusion intelligente des fichiers existants lors de l'installation**
+  - Nouvelle classe `FileMerger` pour gérer la fusion de code PHP
+  - Fusion automatique pour `User.php`, `UserController.php`, `UserPolicy.php` et `api.php`
+  - Conservation des personnalisations existantes lors de l'exécution de `maravel:install`
+  - Priorité aux données de la librairie en cas de conflit
+  - Fusion intelligente des use statements, traits, propriétés, méthodes et routes
+  - Suppression des confirmations interactives (installation automatique et non-destructive)
+
+### Amélioré
+- **Installation automatique plus intelligente** : `maravel:install` ne remplace plus les fichiers existants mais les fusionne
+- **Préservation des données** : Vos méthodes, propriétés et routes personnalisées sont conservées
+- **Messages informatifs** : Affichage détaillé des opérations de fusion effectuées
+
+### Changé
+- La commande `maravel:install` ne demande plus de confirmation et effectue une fusion automatique
+- Les fichiers existants sont fusionnés au lieu d'être remplacés
+- Les routes et contrôleurs personnalisés sont préservés lors de la mise à jour
+
 ## [2.5.4] - 2024-12-8
 ### Ajouté
 - **Ajout de la gestion du statut activé et du changement obligatoire du mot de passe via la commande maravel:install** 

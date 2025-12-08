@@ -236,10 +236,16 @@ class FileMerger
     {
         $traits = [];
 
-        if (preg_match('/use\s+([^;]+);/m', $content, $matches)) {
-            $traitsList = explode(',', $matches[1]);
-            foreach ($traitsList as $trait) {
-                $traits[] = trim($trait);
+        // Extraire uniquement les use traits dans le corps de la classe (après "class ...")
+        if (preg_match('/class\s+\w+[^{]*\{(.*)/s', $content, $classMatch)) {
+            $classBody = $classMatch[1];
+
+            // Chercher la première ligne use dans le corps de la classe
+            if (preg_match('/^\s*use\s+([^;]+);/m', $classBody, $matches)) {
+                $traitsList = explode(',', $matches[1]);
+                foreach ($traitsList as $trait) {
+                    $traits[] = trim($trait);
+                }
             }
         }
 
@@ -414,13 +420,29 @@ class FileMerger
         }
 
         // Ajouter les propriétés
+        $propertyCount = count($properties);
+        $index = 0;
         foreach ($properties as $property) {
-            $content .= "    {$property}\n\n";
+            $index++;
+            $content .= "    {$property}";
+            if ($index < $propertyCount || !empty($methods)) {
+                $content .= "\n\n";
+            } else {
+                $content .= "\n";
+            }
         }
 
         // Ajouter les méthodes
+        $methodCount = count($methods);
+        $index = 0;
         foreach ($methods as $method) {
-            $content .= "    {$method}\n\n";
+            $index++;
+            $content .= "    {$method}";
+            if ($index < $methodCount) {
+                $content .= "\n\n";
+            } else {
+                $content .= "\n";
+            }
         }
 
         $content .= "}\n";
@@ -456,19 +478,42 @@ class FileMerger
         $content .= "class UserController extends " . ($parentClass ?: 'Controller') . "\n{\n";
 
         // Ajouter les propriétés
+        $propertyCount = count($properties);
+        $index = 0;
         foreach ($properties as $property) {
-            $content .= "    {$property}\n\n";
+            $index++;
+            $content .= "    {$property}";
+            if ($index < $propertyCount || $constructor || !empty($methods)) {
+                $content .= "\n\n";
+            } else {
+                $content .= "\n";
+            }
         }
 
         // Ajouter le constructeur
         if ($constructor) {
-            $content .= "    {$constructor}\n\n";
+            $nonConstructorMethods = array_filter($methods, fn($name) => $name !== '__construct', ARRAY_FILTER_USE_KEY);
+            $content .= "    {$constructor}";
+            if (!empty($nonConstructorMethods)) {
+                $content .= "\n\n";
+            } else {
+                $content .= "\n";
+            }
         }
 
         // Ajouter les méthodes
+        $nonConstructorMethods = array_filter($methods, fn($name) => $name !== '__construct', ARRAY_FILTER_USE_KEY);
+        $methodCount = count($nonConstructorMethods);
+        $index = 0;
         foreach ($methods as $methodName => $method) {
             if ($methodName !== '__construct') {
-                $content .= "    {$method}\n\n";
+                $index++;
+                $content .= "    {$method}";
+                if ($index < $methodCount) {
+                    $content .= "\n\n";
+                } else {
+                    $content .= "\n";
+                }
             }
         }
 
@@ -504,13 +549,29 @@ class FileMerger
         $content .= "class UserPolicy extends " . ($parentClass ?: 'Policy') . "\n{\n";
 
         // Ajouter les propriétés
+        $propertyCount = count($properties);
+        $index = 0;
         foreach ($properties as $property) {
-            $content .= "    {$property}\n\n";
+            $index++;
+            $content .= "    {$property}";
+            if ($index < $propertyCount || !empty($methods)) {
+                $content .= "\n\n";
+            } else {
+                $content .= "\n";
+            }
         }
 
         // Ajouter les méthodes
+        $methodCount = count($methods);
+        $index = 0;
         foreach ($methods as $method) {
-            $content .= "    {$method}\n\n";
+            $index++;
+            $content .= "    {$method}";
+            if ($index < $methodCount) {
+                $content .= "\n\n";
+            } else {
+                $content .= "\n";
+            }
         }
 
         $content .= "}\n";

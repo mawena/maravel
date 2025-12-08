@@ -71,6 +71,10 @@ class UserController extends APIController
      */
     public function updatePassword(Request $request)
     {
+        // Vérifier l'autorisation
+        $user = $request->user();
+        $this->authorize('updatePassword', $user);
+
         $validator = Validator::make($request->all(), [
             'current_password' => 'required|string',
             'new_password' => 'required|string|min:8|confirmed',
@@ -84,8 +88,6 @@ class UserController extends APIController
         if ($validator->fails()) {
             return $this->responseError($validator->errors()->toArray(), 400);
         }
-
-        $user = $request->user();
 
         if (!Hash::check($request->current_password, $user->password)) {
             return $this->responseError([

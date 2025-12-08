@@ -123,4 +123,16 @@ class UserPolicy extends BasePolicy
         // Seuls les administrateurs peuvent supprimer définitivement des utilisateurs
         return parent::forceDelete($connectedUser, $user);
     }
+
+    /**
+     * Vérifications personnalisées pour updatePassword
+     *
+     * @param User $connectedUser Utilisateur connecté
+     * @return Response
+     */
+    public function updatePassword($connectedUser)
+    {
+        // Un utilisateur peut toujours changer son propre mot de passe
+        return Response::allow();
+    }
 }

@@ -5,6 +5,17 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.1] - 2024-12-8
+### Corrigé
+- **Bug de doubles déclarations dans FileMerger** : La méthode `extractTraits` capturait incorrectement les use statements au lieu des use traits dans la classe
+- **Formatage excessif** : Réduction des espaces superflus dans les fichiers générés par FileMerger
+- **Méthode manquante dans UserPolicy** : Ajout de la méthode `updatePassword` pour autoriser le changement de mot de passe
+- **Autorisation manquante** : Ajout de la vérification d'autorisation dans `UserController::updatePassword`
+
+### Amélioré
+- **Extraction des traits** : Amélioration de la regex pour ne capturer que les use traits dans le corps de la classe
+- **Génération de code** : Meilleur contrôle de l'espacement dans les fichiers générés
+
 ## [2.6.0] - 2024-12-8
 ### Ajouté
 - **Fusion intelligente des fichiers existants lors de l'installation**

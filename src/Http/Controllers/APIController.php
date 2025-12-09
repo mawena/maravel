@@ -479,11 +479,23 @@ class APIController extends BaseController
     public function uploadChunk(Request $request)
     {
         $chunk = $request->file('file');
-        $index = (string) $request->input('index');     // on stocke les noms de fichiers en string
+        $index = $request->input('index');
         $filename = (string) $request->input('filename');
 
-        if (!$chunk || !$chunk->isValid() || $index === '' || $filename === '') {
+        // Validation stricte de l'index
+        if (!$chunk || !$chunk->isValid() || $filename === '') {
             return response()->json(['error' => 'Chunk invalide'], 422);
+        }
+
+        // Vérifier que l'index est un entier positif
+        if (!is_numeric($index) || $index < 0 || $index != (int)$index) {
+            return response()->json(['error' => 'Index invalide'], 422);
+        }
+        $index = (string)(int)$index; // Convertir en entier puis en string pour garantir un format numérique
+
+        // Optionnel : Limite de taille (ex: 10MB par chunk)
+        if ($chunk->getSize() > 10 * 1024 * 1024) {
+            return response()->json(['error' => 'Chunk trop volumineux'], 422);
         }
 
         $filenameSlug = Str::slug(pathinfo($filename, PATHINFO_FILENAME));
@@ -495,8 +507,17 @@ class APIController extends BaseController
             return response()->json(['error' => 'Impossible de créer le dossier tmp'], 500);
         }
 
-        // On force un nom "index" (sans extension) pour éviter les tris lexicographiques bizarres
-        $chunk->move($tmpPath, $index);
+        // Vérifier le succès de move()
+        try {
+            $chunk->move($tmpPath, $index);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Échec de l\'upload du chunk'], 500);
+        }
+
+        // Vérifier que le fichier existe vraiment après le move
+        if (!file_exists("$tmpPath/$index")) {
+            return response()->json(['error' => 'Le chunk n\'a pas été sauvegardé'], 500);
+        }
 
         return response()->json(['status' => 'chunk uploaded']);
     }

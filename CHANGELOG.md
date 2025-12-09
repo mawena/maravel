@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.5] - 2025-12-09
+### Corrigé
+- **Sécurité et fiabilité de la méthode uploadChunk()** : Correction des vulnérabilités et amélioration de la robustesse
+  - Validation stricte de l'index pour éviter les injections de chemin malveillants
+  - Vérification du succès de l'opération `move()` avant de retourner un succès
+  - Vérification de l'existence du fichier après l'upload
+  - Ajout d'une limite de taille de chunk (10MB par défaut) pour éviter les attaques par déni de service
+  - Gestion des exceptions lors de l'upload
+
 ## [2.6.4] - 2025-12-09
 ### Amélioré
 - **Middleware account.status dans api.php** : Confirmation et documentation de l'intégration du middleware `account.status` dans le stub des routes API

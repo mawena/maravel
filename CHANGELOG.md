@@ -5,6 +5,18 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.3] - 2025-12-09
+### Corrigé
+- **Duplication de propriétés et méthodes lors de la fusion** : Réécriture complète des méthodes `extractClassProperties` et `extractMethods` dans FileMerger pour éviter les doublons
+  - Les propriétés et méthodes ne sont plus extraites plusieurs fois
+  - Les docblocks sont correctement associés à leurs éléments respectifs
+  - Utilisation d'un parsing ligne par ligne avec comptage des accolades au lieu de regex complexes
+  - Les propriétés du stub écrasent maintenant correctement celles du fichier existant (priorité à la librairie)
+
+### Amélioré
+- **Extraction de code plus robuste** : Meilleure gestion des propriétés et méthodes multi-lignes avec tableaux complexes
+- **Fusion intelligente** : Les propriétés identiques ne sont plus dupliquées dans le fichier résultant
+
 ## [2.6.2] - 2024-12-9
 ### Corrigé
 - **Supression du dossier de test**

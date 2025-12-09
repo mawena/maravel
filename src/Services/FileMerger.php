@@ -262,22 +262,110 @@ class FileMerger
     {
         $properties = [];
 
-        // Extraire les propriétés avec leurs commentaires et valeurs
-        preg_match_all('/\/\*\*[\s\S]*?\*\/\s*(?:public|protected|private)\s+(?:static\s+)?(?:\?\w+\s+)?\$(\w+)\s*=?\s*([^;]*);/s', $content, $matches, PREG_SET_ORDER);
-
-        foreach ($matches as $match) {
-            $propertyName = $match[1];
-            $properties[$propertyName] = trim($match[0]);
+        // Extraire le corps de la classe en comptant les accolades
+        if (!preg_match('/class\s+\w+[^{]*\{/', $content, $matches, PREG_OFFSET_CAPTURE)) {
+            return $properties;
         }
 
-        // Extraire aussi les propriétés sans docblock
-        preg_match_all('/(?:^|\n)\s*((?:public|protected|private)\s+(?:static\s+)?(?:\?\w+\s+)?\$(\w+)\s*=?\s*([^;]*);)/m', $content, $matches, PREG_SET_ORDER);
+        $startPos = $matches[0][1] + strlen($matches[0][0]);
+        $braceCount = 1;
+        $endPos = $startPos;
 
-        foreach ($matches as $match) {
-            $propertyName = $match[2];
-            if (!isset($properties[$propertyName])) {
-                $properties[$propertyName] = trim($match[1]);
+        // Trouver la fin de la classe en comptant les accolades
+        for ($i = $startPos; $i < strlen($content); $i++) {
+            if ($content[$i] === '{') {
+                $braceCount++;
+            } elseif ($content[$i] === '}') {
+                $braceCount--;
+                if ($braceCount === 0) {
+                    $endPos = $i;
+                    break;
+                }
             }
+        }
+
+        $classBody = substr($content, $startPos, $endPos - $startPos);
+        $lines = explode("\n", $classBody);
+
+        $i = 0;
+        while ($i < count($lines)) {
+            $line = $lines[$i];
+            $trimmedLine = trim($line);
+
+            // Détecter le début d'une propriété (avec ou sans docblock)
+            if (preg_match('/^(public|protected|private)\s+(?:static\s+)?(?:\?\w+\s+)?\$(\w+)/', $trimmedLine, $matches)) {
+                $propertyName = $matches[2];
+                $propertyContent = '';
+                $docblock = '';
+
+                // Chercher le docblock précédent
+                $j = $i - 1;
+                $docblockLines = [];
+                while ($j >= 0) {
+                    $prevLine = trim($lines[$j]);
+                    if ($prevLine === '*/') {
+                        // Fin du docblock trouvée, remonter jusqu'au début
+                        $docblockLines[] = $lines[$j];
+                        $j--;
+                        while ($j >= 0) {
+                            $docblockLines[] = $lines[$j];
+                            if (trim($lines[$j]) === '/**') {
+                                break;
+                            }
+                            $j--;
+                        }
+                        $docblock = implode("\n", array_reverse($docblockLines)) . "\n";
+                        break;
+                    } elseif ($prevLine === '' || $prevLine === '}') {
+                        // Ligne vide ou fin de bloc, pas de docblock
+                        break;
+                    } else {
+                        // Autre chose, pas de docblock pour cette propriété
+                        break;
+                    }
+                }
+
+                // Extraire le contenu de la propriété jusqu'au point-virgule
+                $propertyLines = [];
+                $bracketCount = 0;
+                $squareBracketCount = 0;
+                $parenCount = 0;
+                $foundSemicolon = false;
+
+                while ($i < count($lines) && !$foundSemicolon) {
+                    $currentLine = $lines[$i];
+                    $propertyLines[] = $currentLine;
+
+                    // Compter les délimiteurs pour savoir si on est dans un tableau/objet
+                    for ($k = 0; $k < strlen($currentLine); $k++) {
+                        $char = $currentLine[$k];
+
+                        if ($char === '{') $bracketCount++;
+                        elseif ($char === '}') $bracketCount--;
+                        elseif ($char === '[') $squareBracketCount++;
+                        elseif ($char === ']') $squareBracketCount--;
+                        elseif ($char === '(') $parenCount++;
+                        elseif ($char === ')') $parenCount--;
+                        elseif ($char === ';' && $bracketCount === 0 && $squareBracketCount === 0 && $parenCount === 0) {
+                            $foundSemicolon = true;
+                            break;
+                        }
+                    }
+
+                    $i++;
+                }
+
+                $propertyContent = implode("\n", $propertyLines);
+
+                // Stocker la propriété avec son docblock
+                $fullProperty = $docblock . $propertyContent;
+                $properties[$propertyName] = trim($fullProperty);
+
+                // Continuer à la ligne suivante (i a déjà été incrémenté dans la boucle while interne)
+                continue;
+            }
+
+            $i++;
         }
 
         return $properties;
@@ -293,37 +381,109 @@ class FileMerger
     {
         $methods = [];
 
-        // Pattern pour capturer les méthodes avec leur docblock
-        $pattern = '/(?:\/\*\*[\s\S]*?\*\/\s*)?(?:public|protected|private)\s+(?:static\s+)?function\s+(\w+)\s*\([^)]*\)(?:\s*:\s*[^{]+)?\s*\{/';
+        // Extraire le corps de la classe en comptant les accolades
+        if (!preg_match('/class\s+\w+[^{]*\{/', $content, $matches, PREG_OFFSET_CAPTURE)) {
+            return $methods;
+        }
 
-        preg_match_all($pattern, $content, $matches, PREG_OFFSET_CAPTURE);
+        $startPos = $matches[0][1] + strlen($matches[0][0]);
+        $braceCount = 1;
+        $endPos = $startPos;
 
-        foreach ($matches[0] as $index => $match) {
-            $methodName = $matches[1][$index][0];
-            $startPos = $match[1];
+        // Trouver la fin de la classe
+        for ($i = $startPos; $i < strlen($content); $i++) {
+            if ($content[$i] === '{') {
+                $braceCount++;
+            } elseif ($content[$i] === '}') {
+                $braceCount--;
+                if ($braceCount === 0) {
+                    $endPos = $i;
+                    break;
+                }
+            }
+        }
 
-            // Trouver la fin de la méthode en comptant les accolades
-            $braceCount = 0;
-            $inMethod = false;
-            $methodContent = '';
+        $classBody = substr($content, $startPos, $endPos - $startPos);
+        $lines = explode("\n", $classBody);
 
-            for ($i = $startPos; $i < strlen($content); $i++) {
-                $char = $content[$i];
-                $methodContent .= $char;
+        $i = 0;
+        while ($i < count($lines)) {
+            $line = $lines[$i];
+            $trimmedLine = trim($line);
 
-                if ($char === '{') {
-                    $braceCount++;
-                    $inMethod = true;
-                } elseif ($char === '}') {
-                    $braceCount--;
+            // Détecter le début d'une méthode
+            if (preg_match('/^(public|protected|private)\s+(?:static\s+)?function\s+(\w+)/', $trimmedLine, $matches)) {
+                $methodName = $matches[2];
+                $methodContent = '';
+                $docblock = '';
 
-                    if ($inMethod && $braceCount === 0) {
+                // Chercher le docblock précédent
+                $j = $i - 1;
+                $docblockLines = [];
+                while ($j >= 0) {
+                    $prevLine = trim($lines[$j]);
+                    if ($prevLine === '*/') {
+                        // Fin du docblock trouvée, remonter jusqu'au début
+                        $docblockLines[] = $lines[$j];
+                        $j--;
+                        while ($j >= 0) {
+                            $docblockLines[] = $lines[$j];
+                            if (trim($lines[$j]) === '/**') {
+                                break;
+                            }
+                            $j--;
+                        }
+                        $docblock = implode("\n", array_reverse($docblockLines)) . "\n";
+                        break;
+                    } elseif ($prevLine === '' || $prevLine === '}') {
+                        // Ligne vide ou fin de bloc, pas de docblock
+                        break;
+                    } else {
+                        // Autre chose, pas de docblock pour cette méthode
                         break;
                     }
                 }
+
+                // Extraire le contenu de la méthode jusqu'à l'accolade fermante
+                $methodLines = [];
+                $bracketCount = 0;
+                $foundOpenBrace = false;
+                $foundCloseBrace = false;
+
+                while ($i < count($lines) && !$foundCloseBrace) {
+                    $currentLine = $lines[$i];
+                    $methodLines[] = $currentLine;
+
+                    // Compter les accolades
+                    for ($k = 0; $k < strlen($currentLine); $k++) {
+                        $char = $currentLine[$k];
+
+                        if ($char === '{') {
+                            $bracketCount++;
+                            $foundOpenBrace = true;
+                        } elseif ($char === '}' && $foundOpenBrace) {
+                            $bracketCount--;
+                            if ($bracketCount === 0) {
+                                $foundCloseBrace = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    $i++;
+                }
+
+                $methodContent = implode("\n", $methodLines);
+
+                // Stocker la méthode avec son docblock
+                $fullMethod = $docblock . $methodContent;
+                $methods[$methodName] = trim($fullMethod);
+
+                // Continuer à la ligne suivante
+                continue;
             }
 
-            $methods[$methodName] = trim($methodContent);
+            $i++;
         }
 
         return $methods;

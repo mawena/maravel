@@ -1,1 +1,0 @@
-import{s as f}from"./index-CvOPxmL5.js";import{X as b,bU as e}from"./main-7JdyGFby.js";const s=(c,r)=>b(()=>{if(!(r!=null&&r.query))return e(c);const t=e(c),a=e(r==null?void 0:r.query),u=Object.fromEntries(Object.entries(a).map(([m,y])=>[m,e(y)]));return`${t}${u?`?${f(u)}`:""}`});export{s as c};

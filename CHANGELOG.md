@@ -5,6 +5,10 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.2] - 2024-12-9
+### Corrigé
+- **Supression du dossier de test**
+
 ## [2.6.1] - 2024-12-8
 ### Corrigé
 - **Bug de doubles déclarations dans FileMerger** : La méthode `extractTraits` capturait incorrectement les use statements au lieu des use traits dans la classe

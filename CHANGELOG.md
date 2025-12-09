@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.4] - 2025-12-09
+### Amélioré
+- **Middleware account.status dans api.php** : Confirmation et documentation de l'intégration du middleware `account.status` dans le stub des routes API
+  - Le middleware est appliqué aux routes CRUD des utilisateurs
+  - Protection contre l'accès aux comptes désactivés (`activated = false`)
+  - Obligation de changement de mot de passe (`password_change_required = true`)
+  - La route `/users/update-password` reste accessible même si le changement de mot de passe est requis
+
 ## [2.6.3] - 2025-12-09
 ### Corrigé
 - **Duplication de propriétés et méthodes lors de la fusion** : Réécriture complète des méthodes `extractClassProperties` et `extractMethods` dans FileMerger pour éviter les doublons

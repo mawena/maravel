@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.7] - 2025-12-13
+### Corrigé
+- **Conversion du paginator en tableau dans responseIndexOk()** : Ajout de la conversion explicite du LengthAwarePaginator en tableau
+  - Ajout de `$data = $data->toArray();` après la création du LengthAwarePaginator
+  - Assure la cohérence du format des données entre le mode paginé et non paginé
+  - Évite les problèmes de sérialisation JSON avec l'objet paginator
+
 ## [2.6.6] - 2025-12-13
 ### Corrigé
 - **Condition redondante dans uploadChunk()** : Simplification de la vérification de création du dossier temporaire

@@ -75,6 +75,7 @@ trait CustomResponseTrait
                 $currentPage,
                 ['path' => $request->url(), 'query' => $request->query()]
             );
+            $data = $data->toArray();
         }
         return $this->responseOkPaginate(data: $data, status: $status, messages: $messages);
     }

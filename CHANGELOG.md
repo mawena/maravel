@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.6] - 2025-12-13
+### Corrigé
+- **Condition redondante dans uploadChunk()** : Simplification de la vérification de création du dossier temporaire
+  - Suppression de la double vérification `!is_dir($tmpPath)` qui était illogique
+  - La condition `if (!is_dir($tmpPath) && !mkdir($tmpPath, 0775, true) && !is_dir($tmpPath))` a été simplifiée en `if (!is_dir($tmpPath) && !mkdir($tmpPath, 0775, true))`
+  - Amélioration de la lisibilité et de la logique du code
+
 ## [2.6.5] - 2025-12-09
 ### Corrigé
 - **Sécurité et fiabilité de la méthode uploadChunk()** : Correction des vulnérabilités et amélioration de la robustesse

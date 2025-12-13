@@ -503,7 +503,7 @@ class APIController extends BaseController
         $safeFileName = $filenameSlug . '.' . $extension;
 
         $tmpPath = storage_path("app/tmp/$safeFileName");
-        if (!is_dir($tmpPath) && !mkdir($tmpPath, 0775, true) && !is_dir($tmpPath)) {
+        if (!is_dir($tmpPath) && !mkdir($tmpPath, 0775, true)) {
             return response()->json(['error' => 'Impossible de créer le dossier tmp'], 500);
         }
 

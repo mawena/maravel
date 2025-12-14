@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.8] - 2025-12-13
+### Modifié
+- **Structure de $enumCasts dans ModelTrait** : Modification de la structure pour permettre plus de flexibilité
+  - Ancienne structure : `'column' => ['value' => 'Label']`
+  - Nouvelle structure : `['colum_name' => 'column', 'choices' => [...], 'additional_column_name' => 'custom_name']`
+  - Permet de personnaliser le nom de la colonne formatée au lieu d'utiliser automatiquement le suffixe `_fr`
+  - **Note** : Typo dans le code : `"colum_name"` devrait être corrigé en `"column_name"` dans une future version
+
 ## [2.6.7] - 2025-12-13
 ### Corrigé
 - **Conversion du paginator en tableau dans responseIndexOk()** : Ajout de la conversion explicite du LengthAwarePaginator en tableau

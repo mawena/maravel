@@ -112,9 +112,11 @@ trait ModelTrait
 		}
 
 		// Formatage des énumérations
-		foreach ($this->enumCasts as $column => $choices) {
+		foreach ($this->enumCasts as $info) {
+			$column = $info["colum_name"];
+			$choices = $info["choices"];
+			$formatted_name = $info["additional_column_name"];
 			if (array_key_exists($column, $this->attributes)) {
-				$formatted_name = $column . '_fr';
 				$value = $this->attributes[$column];
 				$data[$formatted_name] = $choices[$value] ?? $value;
 			}

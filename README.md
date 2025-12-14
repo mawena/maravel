@@ -1,6 +1,6 @@
 # Maravel
 
-![Version](https://img.shields.io/badge/version-2.6.7-blue.svg)
+![Version](https://img.shields.io/badge/version-2.6.8-blue.svg)
 ![PHP](https://img.shields.io/badge/php-%5E8.1%7C%5E8.2%7C%5E8.3%7C%5E8.4-777BB4.svg)
 ![Laravel](https://img.shields.io/badge/laravel-%5E10.0%7C%5E11.0%7C%5E12.0-FF2D20.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -512,13 +512,66 @@ class Product extends ModelBase
     ];
 
     protected array $enumCasts = [
-        'status' => [
+        [
+            'colum_name' => 'status',
+            'choices' => [
+                'active' => 'Actif',
+                'inactive' => 'Inactif',
+                'pending' => 'En attente',
+            ],
+            'additional_column_name' => 'status_label',
+        ],
+    ];
+}
+```
+
+#### Structure de $enumCasts (v2.6.8+)
+
+Depuis la version 2.6.8, la structure de `$enumCasts` a été améliorée pour offrir plus de flexibilité. Chaque élément est maintenant un tableau associatif avec les clés suivantes :
+
+```php
+protected array $enumCasts = [
+    [
+        'colum_name' => 'status',                    // Nom de la colonne dans la base de données
+        'choices' => [                                // Mapping valeur => label
             'active' => 'Actif',
             'inactive' => 'Inactif',
             'pending' => 'En attente',
         ],
-    ];
-}
+        'additional_column_name' => 'status_label',   // Nom de l'attribut formaté dans le JSON
+    ],
+    [
+        'colum_name' => 'priority',
+        'choices' => [
+            'low' => 'Basse',
+            'medium' => 'Moyenne',
+            'high' => 'Haute',
+        ],
+        'additional_column_name' => 'priority_text',
+    ],
+];
+```
+
+**Avantages de cette structure** :
+- ✅ Personnalisation du nom de la colonne formatée (au lieu du suffixe `_fr` automatique)
+- ✅ Support de plusieurs énumérations dans un même modèle
+- ✅ Plus de clarté et de lisibilité dans la configuration
+
+**Exemple de résultat JSON** :
+```php
+$product = Product::find(1);
+// Si $product->status = 'active'
+
+$product->toArray();
+// Retourne :
+[
+    'id' => 1,
+    'status' => 'active',              // Valeur brute
+    'status_label' => 'Actif',         // Valeur formatée avec le nom personnalisé
+    'priority' => 'high',
+    'priority_text' => 'Haute',
+    // ...
+]
 ```
 
 #### Méthodes dynamiques
@@ -549,6 +602,7 @@ Les attributs suivants sont automatiquement ajoutés :
 - `updated_at_fr` : Date de mise à jour formatée
 - `{field}_formatted` : Version formatée des booléens
 - `{field}_fr` : Version formatée des dates, montants, floats et big integers
+- `{additional_column_name}` : Version formatée des énumérations avec nom personnalisable (défini dans `$enumCasts`)
 
 Exemple avec big_integer_casts :
 ```php
@@ -578,7 +632,11 @@ class MyModel extends Model
     protected $big_integer_casts = ['views_count', 'total_sales'];
     protected $floatCasts = ['rating'];
     protected $enumCasts = [
-        'status' => ['draft' => 'Brouillon', 'published' => 'Publié']
+        [
+            'colum_name' => 'status',
+            'choices' => ['draft' => 'Brouillon', 'published' => 'Publié'],
+            'additional_column_name' => 'status_label'
+        ]
     ];
 }
 ```
@@ -660,10 +718,14 @@ class User extends AuthenticatableBase
 
     // Casts d'énumération pour le profil
     protected $enumCasts = [
-        'profile' => [
-            'admin' => 'Administrateur',
-            'user' => 'Utilisateur',
-            'manager' => 'Gestionnaire',
+        [
+            'colum_name' => 'profile',
+            'choices' => [
+                'admin' => 'Administrateur',
+                'user' => 'Utilisateur',
+                'manager' => 'Gestionnaire',
+            ],
+            'additional_column_name' => 'profile_label',
         ],
     ];
 
@@ -1509,10 +1571,14 @@ class Post extends ModelBase
     ];
 
     protected array $enumCasts = [
-        'status' => [
-            'draft' => 'Brouillon',
-            'published' => 'Publié',
-            'archived' => 'Archivé',
+        [
+            'colum_name' => 'status',
+            'choices' => [
+                'draft' => 'Brouillon',
+                'published' => 'Publié',
+                'archived' => 'Archivé',
+            ],
+            'additional_column_name' => 'status_label',
         ],
     ];
 

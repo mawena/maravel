@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.9] - 2025-12-13
+### Modifié
+- **Formatage des booléens dans ModelTrait** : Ajout de la conversion en entier de la valeur brute
+  - La valeur booléenne est maintenant convertie en int (0 ou 1) dans le résultat JSON
+  - La version formatée `{field}_formatted` contient toujours le booléen (true/false)
+  - Améliore la compatibilité avec les bases de données et les APIs qui attendent des valeurs numériques
+
 ## [2.6.8] - 2025-12-13
 ### Modifié
 - **Structure de $enumCasts dans ModelTrait** : Modification de la structure pour permettre plus de flexibilité

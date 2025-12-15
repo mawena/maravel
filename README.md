@@ -1,6 +1,6 @@
 # Maravel
 
-![Version](https://img.shields.io/badge/version-2.6.8-blue.svg)
+![Version](https://img.shields.io/badge/version-2.6.9-blue.svg)
 ![PHP](https://img.shields.io/badge/php-%5E8.1%7C%5E8.2%7C%5E8.3%7C%5E8.4-777BB4.svg)
 ![Laravel](https://img.shields.io/badge/laravel-%5E10.0%7C%5E11.0%7C%5E12.0-FF2D20.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -610,6 +610,19 @@ $product = Product::find(1);
 // $product->views_count => 1500000 (int)
 // $product->views_count_fr => "1 500 000" (string formatée)
 ```
+
+Exemple avec booleanCasts (v2.6.9+) :
+```php
+$product = Product::find(1);
+$product->toArray();
+// Retourne :
+[
+    'is_active' => 1,              // Valeur convertie en int (0 ou 1)
+    'is_active_formatted' => true, // Valeur booléenne (true ou false)
+]
+```
+
+**Note** : Depuis la version 2.6.9, les booléens sont automatiquement convertis en entiers (0 ou 1) pour améliorer la compatibilité avec les APIs et bases de données qui attendent des valeurs numériques.
 
 ---
 

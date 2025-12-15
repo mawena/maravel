@@ -80,6 +80,7 @@ trait ModelTrait
 		// Formatage des booléens
 		foreach ($this->booleanCasts as $column) {
 			if (array_key_exists($column, $this->attributes)) {
+				$data[$column] = (int) $this->attributes[$column];
 				$formatted_name = $column . '_formatted';
 				$data[$formatted_name] = (bool) $this->attributes[$column];
 			}

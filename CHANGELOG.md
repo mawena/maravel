@@ -5,6 +5,18 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2025-12-13
+### Modifié
+- **Refonte du stub user-model.stub** : Utilisation complète de la nouvelle structure $enumCasts
+  - **BREAKING CHANGE** : Suppression de la méthode `getAbilityRulesAttribute()` - Les ability_rules sont maintenant générées via $enumCasts
+  - Ajout de 4 enum casts dans le modèle User :
+    - `profile` → `profile_fr` : Labels français pour les profils (Administrateur, Métier)
+    - `profile` → `ability_rules` : Génération automatique des règles de permissions via enumCasts
+    - `activated` → `activated_fr` : Labels "Oui"/"Non" pour le statut d'activation
+    - `password_change_required` → `password_change_required_fr` : Labels "Oui"/"Non" pour le changement de mot de passe
+  - Les ability_rules sont maintenant définies de manière statique dans $enumCasts au lieu d'être calculées dynamiquement
+  - Simplifie la gestion des permissions en utilisant le système de casts unifié
+
 ## [2.6.9] - 2025-12-13
 ### Modifié
 - **Formatage des booléens dans ModelTrait** : Ajout de la conversion en entier de la valeur brute

@@ -1,6 +1,6 @@
 # Maravel
 
-![Version](https://img.shields.io/badge/version-2.6.9-blue.svg)
+![Version](https://img.shields.io/badge/version-2.7.0-blue.svg)
 ![PHP](https://img.shields.io/badge/php-%5E8.1%7C%5E8.2%7C%5E8.3%7C%5E8.4-777BB4.svg)
 ![Laravel](https://img.shields.io/badge/laravel-%5E10.0%7C%5E11.0%7C%5E12.0-FF2D20.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -141,8 +141,8 @@ Le modèle `User` est automatiquement configuré avec :
 - Champs `activated` et `password_change_required` dans `$fillable` (v2.5.3+)
 - Casts d'énumération pour le profil (`admin` → Administrateur, `other` → Utilisateur)
 - Casts booléens pour `activated` et `password_change_required`
-- Méthode `getAbilityRulesAttribute()` pour le système de permissions
-- Attribut `ability_rules` dans `$appends`
+- **Système de permissions via $enumCasts (v2.7.0+)** : Les `ability_rules` sont générées automatiquement via $enumCasts
+- Labels français automatiques pour `profile`, `activated` et `password_change_required`
 
 **Routes configurées automatiquement** dans `routes/api.php` :
 ```php
@@ -208,11 +208,11 @@ Schema::table('users', function (Blueprint $table) {
 });
 ```
 
-**Système de permissions** : Le modèle User est configuré avec un système de permissions basé sur les profils :
+**Système de permissions (v2.7.0+)** : Le modèle User est configuré avec un système de permissions basé sur les profils via $enumCasts :
 - **admin** : Accès complet à toutes les ressources (`['subject' => ['all'], 'action' => ['manage']]`)
-- **other** : Pas de permissions par défaut (à personnaliser selon vos besoins)
+- **other** : Permissions limitées (lecture utilisateur uniquement)
 
-Vous pouvez étendre les permissions en modifiant la méthode `getAbilityRulesAttribute()` dans `app/Models/User.php`.
+Vous pouvez étendre les permissions en modifiant le $enumCasts correspondant dans `app/Models/User.php`. Les `ability_rules` sont maintenant générées automatiquement via le système de casts unifié.
 
 **Gestion du statut des comptes** (v2.5.3+) :
 
@@ -729,16 +729,49 @@ class User extends AuthenticatableBase
 
     protected $hidden = ['password', 'remember_token'];
 
-    // Casts d'énumération pour le profil
+    // Casts d'énumération pour le profil et les permissions (v2.7.0+)
     protected $enumCasts = [
         [
             'colum_name' => 'profile',
+            'additional_column_name' => 'profile_fr',
             'choices' => [
                 'admin' => 'Administrateur',
-                'user' => 'Utilisateur',
-                'manager' => 'Gestionnaire',
+                'other' => 'Utilisateur',
             ],
-            'additional_column_name' => 'profile_label',
+        ],
+        [
+            'colum_name' => 'profile',
+            'additional_column_name' => 'ability_rules',
+            'choices' => [
+                'admin' => [
+                    [
+                        'subject' => ['all'],
+                        'action' => ['manage'],
+                    ],
+                ],
+                'other' => [
+                    [
+                        'subject' => ['user'],
+                        'action' => ['read'],
+                    ],
+                ],
+            ],
+        ],
+        [
+            'colum_name' => 'activated',
+            'additional_column_name' => 'activated_fr',
+            'choices' => [
+                1 => 'Oui',
+                0 => 'Non',
+            ],
+        ],
+        [
+            'colum_name' => 'password_change_required',
+            'additional_column_name' => 'password_change_required_fr',
+            'choices' => [
+                1 => 'Oui',
+                0 => 'Non',
+            ],
         ],
     ];
 
@@ -753,26 +786,6 @@ class User extends AuthenticatableBase
             'activated' => 'boolean',
             'password_change_required' => 'boolean',
         ];
-    }
-
-    /**
-     * Règles d'abilités pour le système de permissions
-     */
-    public function getAbilityRulesAttribute(): array
-    {
-        return match($this->profile) {
-            'admin' => [
-                ['subject' => ['all'], 'action' => ['manage']],
-            ],
-            'manager' => [
-                ['subject' => ['product', 'order'], 'action' => ['read', 'create', 'update']],
-            ],
-            'user' => [
-                ['subject' => ['product'], 'action' => ['read']],
-                ['subject' => ['order'], 'action' => ['read', 'create']],
-            ],
-            default => [],
-        };
     }
 
     /**

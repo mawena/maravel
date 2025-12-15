@@ -40,7 +40,9 @@ class User extends AuthenticatableBase
      *
      * @var array
      */
-    public $appends = ['ability_rules'];
+    public $appends = [
+        
+    ];
 
     /**
      * Casts d'énumération pour le profil
@@ -48,7 +50,49 @@ class User extends AuthenticatableBase
      * @var array
      */
     protected $enumCasts = [
-        'profile' => ['admin' => 'Administrateur', 'other' => 'Utilisateur']
+        [
+			'colum_name' => 'profile',
+			'additional_column_name' => "profile_fr",
+			'choices' => [
+				'admin' => "Adminitrateur",
+				'other' => "Métier",
+			]
+		],
+		[
+			'colum_name' => 'profile',
+			'additional_column_name' => "ability_rules",
+			'choices' => [
+				'admin' => [
+					[
+						'subject' => ['all'],
+						'action' => ['manage'],
+					],
+				],
+				'other' => [
+					[
+						'subject' => ['user'],
+						'action' => ['read'],
+					],
+				],
+			],
+		],
+		[
+			'colum_name' => 'activated',
+			'additional_column_name' => "activated_fr",
+			'choices' => [
+				1 => "Oui",
+				0 => "Non",
+			]
+		],
+		[
+			'colum_name' => 'password_change_required',
+			'additional_column_name' => "password_change_required_fr",
+			'choices' => [
+				1 => "Oui",
+				0 => "Non",
+			]
+		],
+		
     ];
 
     /**
@@ -64,18 +108,5 @@ class User extends AuthenticatableBase
             'activated' => 'boolean',
             'password_change_required' => 'boolean',
         ];
-    }
-
-    /**
-     * Règles d'abilités pour le système de permissions
-     *
-     * @return array
-     */
-    public function getAbilityRulesAttribute(): array
-    {
-        return match($this->profile) {
-            'admin' => [['subject' => ['all'], 'action' => ['manage']]],
-            default => [],
-        };
     }
 }

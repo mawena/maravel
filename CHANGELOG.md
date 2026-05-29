@@ -5,6 +5,27 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026-05-29
+
+### Ajouté
+- **Filtrage dynamique des champs via headers HTTP** (`FieldFilterMiddleware`) :
+  - Nouveau middleware `Maravel\Http\Middleware\FieldFilterMiddleware` enregistré automatiquement sous l'alias `maravel.fields`
+  - Header `X-Maravel-Only: field1,field2` : la réponse ne contient QUE les champs listés
+  - Header `X-Maravel-Except: field1,field2` : la réponse contient tout SAUF les champs listés
+  - Cumul des deux headers : `X-Maravel-Only` appliqué en premier, puis `X-Maravel-Except` sur la sélection restreinte
+  - Fonctionne sur toutes les réponses (index, show, store, update) sans modification des contrôleurs existants
+  - Gestion des structures imbriquées : listes de modèles, wrappers `{"model": {...}}` et attributs scalaires
+- **Nouveau filtre de présence de relation** (`queryHaveFilter`) dans `ControllerHelperTrait` :
+  - `?have_relation=true` → `whereHas($relation)` : ne retourner que les enregistrements ayant la relation
+  - `?doesnt_have_relation=true` → `whereDoesntHave($relation)` : exclure les enregistrements ayant la relation
+  - Support des relations imbriquées via le séparateur `>` (ex: `have_category>images=true`)
+
+### Corrigé
+- **`BasePolicy::before()`** : `$connectedUserArray` était créé mais `ability_rules` était lu via `$connectedUser["ability_rules"]` au lieu de `$connectedUserArray["ability_rules"]` — le `toArray()` n'était pas utilisé
+- **`ModelTrait` (big_integer_casts)** : comparaison `!= null` remplacée par `!== null` — en PHP, `0 == null` est `true`, ce qui faisait sauter silencieusement les colonnes à valeur `0`
+- **`CustomResponseTrait::responseError()`** : les valeurs d'erreur non-tableau provoquaient une erreur dans `implode()` — ajout d'une vérification `is_array()` avant le join
+- **`user-model.stub`** : labels `password_change_required` mis à jour (`Obligatoire` / `Facultatif` au lieu de `Oui` / `Non`)
+
 ## [2.7.0] - 2025-12-13
 ### Modifié
 - **Refonte du stub user-model.stub** : Utilisation complète de la nouvelle structure $enumCasts

@@ -1,6 +1,6 @@
 # Maravel
 
-![Version](https://img.shields.io/badge/version-2.7.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.8.0-blue.svg)
 ![PHP](https://img.shields.io/badge/php-%5E8.1%7C%5E8.2%7C%5E8.3%7C%5E8.4-777BB4.svg)
 ![Laravel](https://img.shields.io/badge/laravel-%5E10.0%7C%5E11.0%7C%5E12.0-FF2D20.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -21,6 +21,7 @@
   - [Traits disponibles](#traits-disponibles)
   - [Commandes Artisan](#commandes-artisan)
 - [Filtres avancés](#filtres-avancés)
+- [Filtrage dynamique des champs (Headers)](#filtrage-dynamique-des-champs-headers)
 - [Système de permissions](#système-de-permissions)
 - [Hooks et callbacks](#hooks-et-callbacks)
 - [Exemples complets](#exemples-complets)
@@ -1315,6 +1316,21 @@ GET /api/products?in_status=active-pending-draft
 GET /api/products?not_in_category_id=1-2-3
 ```
 
+### Filtres de présence de relation
+
+Filtrer par présence ou absence d'une relation :
+
+```
+GET /api/products?have_reviews=true        // Produits qui ont au moins un avis
+GET /api/products?doesnt_have_reviews=true // Produits sans aucun avis
+```
+
+Relations imbriquées (utiliser `>` comme séparateur) :
+
+```
+GET /api/products?have_category>images=true // Produits dont la catégorie a des images
+```
+
 ### Recherche textuelle
 
 Rechercher dans plusieurs champs :
@@ -1375,8 +1391,117 @@ Les reducers sont définis dans le modèle (voir section ControllerHelperTrait).
 Combiner plusieurs filtres :
 
 ```
-GET /api/products?search=phone&min<price=100&max<price=1000&in_status=active-featured&with_category=true&order_by_desc=created_at&per_page=20&reduce_stats=true
+GET /api/products?search=phone&min<price=100&max<price=1000&in_status=active-featured&have_reviews=true&with_category=true&order_by_desc=created_at&per_page=20&reduce_stats=true
 ```
+
+---
+
+## Filtrage dynamique des champs (Headers)
+
+Depuis la version **2.8.0**, Maravel permet de contrôler les champs retournés dans chaque réponse JSON directement depuis les headers HTTP, sans modifier le moindre contrôleur. C'est une approche "opt-out" : par défaut, tous les champs sont retournés.
+
+### Activation du middleware
+
+Le middleware est enregistré automatiquement sous l'alias `maravel.fields`. Appliquez-le sur les routes ou groupes de routes souhaités :
+
+```php
+// Sur un groupe de routes
+Route::middleware(['auth:sanctum', 'maravel.fields'])->group(function () {
+    Route::apiResource('products', ProductController::class);
+    Route::apiResource('users', UserController::class);
+});
+
+// Sur une route spécifique
+Route::get('/users/{id}', [UserController::class, 'show'])
+    ->middleware('maravel.fields');
+```
+
+### Headers disponibles
+
+| Header | Rôle |
+|--------|------|
+| `X-Maravel-Only` | Ne retourner **que** les champs listés (séparés par des virgules) |
+| `X-Maravel-Except` | Retourner **tout sauf** les champs listés (séparés par des virgules) |
+
+### Comportement par défaut
+
+Sans header, la réponse est identique à ce qu'elle était avant. Le middleware est **no-op** si aucun des deux headers n'est présent.
+
+### Exemples
+
+#### `X-Maravel-Only` — Inclusion
+
+Ne retourner que `id`, `name` et `email` :
+
+```http
+GET /api/users
+X-Maravel-Only: id,name,email
+```
+
+Réponse (au lieu de tous les champs) :
+```json
+{
+    "status": 200,
+    "data": [
+        { "id": 1, "name": "Alice", "email": "alice@example.com" },
+        { "id": 2, "name": "Bob",   "email": "bob@example.com" }
+    ],
+    "total": 2
+}
+```
+
+#### `X-Maravel-Except` — Exclusion
+
+Retourner tous les champs sauf `password` et `remember_token` :
+
+```http
+GET /api/users/1
+X-Maravel-Except: password,remember_token
+```
+
+Réponse :
+```json
+{
+    "status": 200,
+    "data": {
+        "user": {
+            "id": 1,
+            "name": "Alice",
+            "email": "alice@example.com",
+            "profile": "admin",
+            "activated": 1
+        }
+    },
+    "messages": []
+}
+```
+
+#### Cumul des deux headers
+
+Si les deux headers sont présents, `X-Maravel-Only` est appliqué en premier, puis `X-Maravel-Except` retire des champs de la sélection restreinte :
+
+```http
+GET /api/users/1
+X-Maravel-Only: id,name,email,profile
+X-Maravel-Except: profile
+```
+
+Résultat : seulement `id`, `name`, `email` (on a gardé 4 champs, puis retiré `profile`).
+
+### Structures imbriquées
+
+Le filtrage s'applique intelligemment sur toutes les structures de réponse Maravel :
+
+- **Liste (index)** : chaque objet de la liste est filtré
+- **Objet unique (show/store/update)** : les attributs du modèle sont filtrés
+- **Relations chargées** : si un champ de relation (ex: `category`) n'est pas dans `X-Maravel-Only`, il est retiré ; s'il y est, il est conservé tel quel
+
+```http
+GET /api/products?with_category=true
+X-Maravel-Only: id,name,price,category
+```
+
+→ Retourne `id`, `name`, `price` et l'objet `category` complet.
 
 ---
 

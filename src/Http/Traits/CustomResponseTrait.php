@@ -122,7 +122,11 @@ trait CustomResponseTrait
     {
         $finalErrors = [];
         foreach ($errors as $key => $value) {
-            $finalErrors[$key] = implode("<br>", $value);
+            if (is_array($value)) {
+                $finalErrors[$key] = implode("<br>", $value);
+            } else {
+                $finalErrors[$key] = $value;
+            }
         }
         return FunctionType::json(
             [

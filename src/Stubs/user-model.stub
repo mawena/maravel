@@ -88,8 +88,8 @@ class User extends AuthenticatableBase
 			'colum_name' => 'password_change_required',
 			'additional_column_name' => "password_change_required_fr",
 			'choices' => [
-				1 => "Oui",
-				0 => "Non",
+				1 => "Obligatoire",
+				0 => "Facultatif",
 			]
 		],
 		

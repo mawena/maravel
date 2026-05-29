@@ -62,6 +62,35 @@ trait ControllerHelperTrait
     }
 
     /**
+     * Permet d'ajouter des filtres par relation sur un objet Eloquent
+     * @param 	mixed 	$query				L'objet Eloquent
+     * @param 	mixed 	$requestData		Les données de la requete
+     * @param 	mixed 	$modelName			Le nom du model
+     * @return 	mixed
+     */
+    public function queryHaveFilter($query, $requestData, $modelName, $prefix = "doesnt_have_")
+    {
+        $relationData = collect($requestData)->filter(function ($value, $key) use ($prefix) {
+            return strpos($key, $prefix) === 0;
+        });
+        foreach ($relationData as $filter => $value) {
+            if (in_array($value, ["true", "false"])) {
+                $value = ($value == "true") ? 1 : 0;
+            }
+            $relation = str_replace(">", ".", substr($filter, strlen($prefix)));
+            // $valueArray = array_filter(explode('-', $value));
+            if ($value) {
+                if ($prefix == "have_") {
+                    $query->whereHas($relation);
+                } else {
+                    $query->whereDoesntHave($relation);
+                }
+            }
+        }
+        return $query;
+    }
+
+    /**
      * Permet d'ajouter des filtres minimum sur un objet Eloquent avec min
      * @param 	mixed 	$query				L'objet Eloquent
      * @param 	mixed 	$requestData		Les données de la requete

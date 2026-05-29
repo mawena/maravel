@@ -194,6 +194,8 @@ class APIController extends BaseController
         $list = $this->queryFilterMin($list, $requestData, $this->modelName);
         $list = $this->queryFilterMax($list, $requestData, $this->modelName);
         $list = $this->queryRelationAdd($list, $requestData, $this->modelName);
+        $list = $this->queryHaveFilter($list, $requestData, $this->modelName, "doesnt_have_");
+        $list = $this->queryHaveFilter($list, $requestData, $this->modelName, "have_");
 
         $connectedUser = $request->user();
         if ($this->indexManualFilter) {
@@ -488,10 +490,10 @@ class APIController extends BaseController
         }
 
         // Vérifier que l'index est un entier positif
-        if (!is_numeric($index) || $index < 0 || $index != (int)$index) {
+        if (!is_numeric($index) || $index < 0 || $index != (int) $index) {
             return response()->json(['error' => 'Index invalide'], 422);
         }
-        $index = (string)(int)$index; // Convertir en entier puis en string pour garantir un format numérique
+        $index = (string) (int) $index; // Convertir en entier puis en string pour garantir un format numérique
 
         // Optionnel : Limite de taille (ex: 10MB par chunk)
         if ($chunk->getSize() > 10 * 1024 * 1024) {

@@ -4,6 +4,7 @@ namespace Maravel\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Maravel\Http\Controllers\APIController;
+use Maravel\Http\Middleware\FieldFilterMiddleware;
 use Maravel\Console\Commands\MakeController;
 use Maravel\Console\Commands\MakeModel;
 use Maravel\Console\Commands\MakePolicy;
@@ -24,6 +25,9 @@ class AdvancedApiControllerServiceProvider extends ServiceProvider
 	 */
 	public function boot(): void
 	{
+		// Enregistrement de l'alias du middleware de filtrage de champs
+		$this->app['router']->aliasMiddleware('maravel.fields', FieldFilterMiddleware::class);
+
 		// Publication des fichiers de configuration
 		if ($this->app->runningInConsole()) {
 			$this->publishes([

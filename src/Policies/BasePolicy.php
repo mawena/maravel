@@ -37,7 +37,8 @@ class BasePolicy
 		}
 
 		// Vérification des permissions globales "manage"
-		foreach ($connectedUser->ability_rules as $ability_rule) {
+		$connectedUserArray = $connectedUser->toArray();
+		foreach ($connectedUserArray["ability_rules"] as $ability_rule) {
 			if ($ability_rule["subject"] == "all" && in_array("manage", $ability_rule["action"])) {
 				return Response::allow();
 			}

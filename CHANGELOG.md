@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - 2026-05-29
+
+### Ajouté
+- **Compatibilité Laravel 13** :
+  - Ajout de `^13.0` dans la contrainte `laravel/framework` de `composer.json`
+  - Ajout de `orchestra/testbench ^11.0` dans les dépendances de développement
+  - Ajout de `phpunit/phpunit ^11.0` dans les dépendances de développement
+  - Aucune modification du code PHP nécessaire : les APIs utilisées (ServiceProvider, Router, middlewares) sont stables et inchangées dans Laravel 13
+
 ## [2.8.0] - 2026-05-29
 
 ### Ajouté

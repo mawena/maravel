@@ -1,8 +1,8 @@
 # Maravel
 
-![Version](https://img.shields.io/badge/version-2.8.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.9.0-blue.svg)
 ![PHP](https://img.shields.io/badge/php-%5E8.1%7C%5E8.2%7C%5E8.3%7C%5E8.4-777BB4.svg)
-![Laravel](https://img.shields.io/badge/laravel-%5E10.0%7C%5E11.0%7C%5E12.0-FF2D20.svg)
+![Laravel](https://img.shields.io/badge/laravel-%5E10.0%7C%5E11.0%7C%5E12.0%7C%5E13.0-FF2D20.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 **Maravel** est une librairie Laravel avancée qui accélère le développement d'API REST en fournissant un contrôleur générique avec CRUD complet, un système de permissions sophistiqué, des modèles enrichis avec formatage automatique, et des commandes Artisan pour générer du code prêt à l'emploi.
@@ -79,7 +79,7 @@
 ## Prérequis
 
 - **PHP** : 8.1, 8.2, 8.3 ou 8.4
-- **Laravel** : 10.x, 11.x ou 12.x
+- **Laravel** : 10.x, 11.x, 12.x ou 13.x
 - **Composer** : 2.x
 
 ---

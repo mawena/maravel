@@ -86,13 +86,13 @@ class UserController extends APIController
         ]);
 
         if ($validator->fails()) {
-            return $this->responseError($validator->errors()->toArray(), 400);
+            return $this->responseError($validator->errors()->toArray(), 422);
         }
 
         if (!Hash::check($request->current_password, $user->password)) {
             return $this->responseError([
                 'current_password' => ['Le mot de passe actuel est incorrect']
-            ], 400);
+            ], 422);
         }
 
         $user->password = Hash::make($request->new_password);

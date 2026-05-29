@@ -95,6 +95,7 @@ trait CustomResponseTrait
                 "data" => $this->utf8ize($data),
                 "messages" => $messages,
             ],
+            $status,
         );
     }
 
@@ -109,6 +110,7 @@ trait CustomResponseTrait
     {
         return FunctionType::json(
             array_merge(["status" => $status, "messages" => $messages], $this->utf8ize($data)),
+            $status,
         );
     }
 
@@ -133,7 +135,7 @@ trait CustomResponseTrait
                 "status" => $status,
                 "errors" => $finalErrors,
             ],
-            200,
+            $status,
         );
     }
 }

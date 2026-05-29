@@ -5,6 +5,22 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-05-29
+
+### Modifié
+- **BREAKING CHANGE — Conformité REST des codes de statut HTTP** : les réponses utilisent désormais le vrai code de statut HTTP au lieu de toujours renvoyer `200 OK` avec le code réel dans le corps JSON.
+  - `CustomResponseTrait::responseOk()` et `responseOkPaginate()` propagent désormais l'argument `$status` au code HTTP réel (un `store()` répond bien `201 Created`).
+  - `CustomResponseTrait::responseError()` renvoie le vrai code HTTP (`403`, `404`, `422`, `500`…) au lieu de `200`.
+  - Le champ `"status"` reste présent dans le corps JSON pour compatibilité ascendante côté client.
+  - **Migration front-end** : les clients qui testaient `response.data.status` continuent de fonctionner ; ceux qui supposaient un HTTP `200` systématique doivent gérer les codes 4xx/5xx (ex : intercepteurs Axios `catch`).
+
+### Corrigé
+- **Codes de statut sémantiques (RFC 7231 / 4918)** :
+  - Échec de validation : `400` → **`422 Unprocessable Entity`** (`store`, `store_multiple`, `update`, validations manuelles).
+  - ID manquant en mise à jour : `401` → **`422`** (401 est réservé à l'authentification).
+  - Stub `auth-controller` : échec de connexion (mauvais identifiants) `400` → **`401 Unauthorized`** ; garde `$user` désormais vérifié avant `Hash::check()` ; échec de déconnexion → **`500`**.
+  - Stub `user-controller` : changement de mot de passe — erreurs de validation et mot de passe actuel incorrect `400` → **`422`**.
+
 ## [2.9.0] - 2026-05-29
 
 ### Ajouté

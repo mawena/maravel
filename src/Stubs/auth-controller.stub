@@ -31,16 +31,16 @@ class AuthController extends APIController
             "password" => 'required'
         ]);
         if ($validator->fails()) {
-            return $this->responseError($validator->errors(), 400);
+            return $this->responseError($validator->errors(), 422);
         } else {
             $user = User::where('email', $request->email)->first();
-            if (Hash::check($request->password, $user->password)) {
+            if ($user && Hash::check($request->password, $user->password)) {
                 return $this->responseOk([
                     "userToken" => $user->createToken($request->email)->plainTextToken,
                     "user" => $user,
                 ]);
             } else {
-                return $this->responseError(["password" => ["password incorrect"]], 400);
+                return $this->responseError(["password" => ["password incorrect"]], 401);
             }
         }
     }
@@ -65,7 +65,7 @@ class AuthController extends APIController
         if ($request->user()->currentAccessToken()->delete()) {
             return $this->responseOk(["messages" => ["logout done"]]);
         } else {
-            return $this->responseError(["errors" => ["error during logout"]]);
+            return $this->responseError(["errors" => ["error during logout"]], 500);
         }
     }
 }

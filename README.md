@@ -22,6 +22,7 @@
   - [Commandes Artisan](#commandes-artisan)
 - [Filtres avancés](#filtres-avancés)
 - [Filtrage dynamique des champs (Headers)](#filtrage-dynamique-des-champs-headers)
+- [Codes de statut HTTP (REST)](#codes-de-statut-http-rest)
 - [Système de permissions](#système-de-permissions)
 - [Hooks et callbacks](#hooks-et-callbacks)
 - [Exemples complets](#exemples-complets)
@@ -1019,10 +1020,13 @@ class MyController extends Controller
 
     public function error()
     {
-        return $this->responseError(['field' => ['Error message']], 400);
+        // 422 = Unprocessable Entity (erreur de validation)
+        return $this->responseError(['field' => ['Error message']], 422);
     }
 }
 ```
+
+> **⚠️ v3.0.0 — Conformité REST (BREAKING CHANGE).** Depuis la v3.0.0, `responseOk()`, `responseOkPaginate()` et `responseError()` renvoient le **vrai code de statut HTTP** passé en argument (`$status`) au lieu de toujours répondre `200 OK`. Le champ `"status"` reste présent dans le corps JSON pour compatibilité ascendante côté client. Voir la section [Codes de statut HTTP (REST)](#codes-de-statut-http-rest).
 
 #### ControllerHelperTrait
 
@@ -1502,6 +1506,82 @@ X-Maravel-Only: id,name,price,category
 ```
 
 → Retourne `id`, `name`, `price` et l'objet `category` complet.
+
+---
+
+## Codes de statut HTTP (REST)
+
+Depuis la version **3.0.0**, Maravel respecte les conventions REST : chaque réponse renvoie le **vrai code de statut HTTP** correspondant à la sémantique de l'opération (RFC 7231 / 4918), au lieu de toujours répondre `200 OK` avec le code réel enfoui dans le corps JSON.
+
+> **⚠️ BREAKING CHANGE (v3.0.0).** Avant la v3.0.0, toutes les réponses (succès comme erreurs) renvoyaient `HTTP 200`, le code applicatif étant uniquement disponible dans le champ `"status"` du corps. Désormais le code HTTP réel est utilisé. Le champ `"status"` reste présent dans le corps pour compatibilité ascendante.
+
+### Codes utilisés par l'APIController
+
+| Opération | Cas | Code HTTP |
+|-----------|-----|-----------|
+| `index` / `show` | Succès | `200 OK` |
+| `store` / `store_multiple` | Création réussie | `201 Created` |
+| `update` | Mise à jour réussie | `200 OK` |
+| `destroy` | Suppression réussie | `200 OK` |
+| Toutes | Échec de validation (Laravel ou validations manuelles) | `422 Unprocessable Entity` |
+| `update` | ID manquant | `422 Unprocessable Entity` |
+| `show` / `update` / `destroy` | Ressource introuvable | `404 Not Found` |
+| Toutes | Autorisation refusée (Gate/Policy) | `403 Forbidden` |
+| Toutes | Erreur serveur | `500 Internal Server Error` |
+
+### Format des réponses
+
+**Succès** (le code HTTP correspond au champ `status`) :
+
+```json
+{
+    "status": 201,
+    "data": { "user": { "id": 1, "name": "John" } },
+    "messages": []
+}
+```
+
+**Erreur** (ex : validation, HTTP `422`) :
+
+```json
+{
+    "status": 422,
+    "errors": { "email": "Le champ email est obligatoire" }
+}
+```
+
+### Impact côté client (migration v2 → v3)
+
+- Les clients qui testaient le champ `response.data.status` continuent de fonctionner sans modification.
+- Les clients qui supposaient un `HTTP 200` systématique doivent désormais gérer les branches d'erreur HTTP. Par exemple avec Axios, les réponses `4xx`/`5xx` déclenchent le bloc `.catch()` (ou `try/catch` avec `await`) :
+
+```js
+try {
+    const { data } = await axios.post('/api/users', payload);
+    // 2xx : data.data contient la ressource créée
+} catch (error) {
+    // 4xx / 5xx : error.response.data.errors contient le détail
+    const errors = error.response.data.errors;
+}
+```
+
+### Personnalisation
+
+Les helpers du `CustomResponseTrait` acceptent le code HTTP en argument :
+
+```php
+$this->responseOk($data, $messages, 201);          // 201 Created
+$this->responseError(['email' => ['...']], 422);   // 422 Unprocessable Entity
+```
+
+Dans une validation manuelle (`storeManualValidationsFunction` / `updateManualValidationsFunction`), le code peut être fourni via la clé `status` (défaut : `422`) :
+
+```php
+return [
+    'errors' => ['quota' => ['Quota dépassé']],
+    'status' => 409, // 409 Conflict
+];
+```
 
 ---
 

@@ -308,13 +308,13 @@ class APIController extends BaseController
         }
         $validator = Validator::make($requestData, $validations, $validationsText);
         if ($validator->fails()) {
-            return $this->responseError($validator->errors()->toArray(), 400);
+            return $this->responseError($validator->errors()->toArray(), 422);
         }
         DB::beginTransaction();
         $manualValidationsReturn = ($manualValidations) ? $manualValidations($requestData) : null;
         if (isset($manualValidationsReturn["errors"])) {
             if ($manualValidationsReturn["errors"]) {
-                return $this->responseError($manualValidationsReturn["errors"], $manualValidationsReturn["status"] ?? 400);
+                return $this->responseError($manualValidationsReturn["errors"], $manualValidationsReturn["status"] ?? 422);
             }
         }
         $manualValidationsReturn["data"] = isset($manualValidationsReturn["data"]) ? $manualValidationsReturn["data"] : [];
@@ -356,12 +356,12 @@ class APIController extends BaseController
         foreach ($requestDataArray as $requestData) {
             $validator = Validator::make($requestData, $validations, $validationsText);
             if ($validator->fails()) {
-                return $this->responseError($validator->errors()->toArray(), 400);
+                return $this->responseError($validator->errors()->toArray(), 422);
             }
             $manualValidationsReturn = ($manualValidations) ? $manualValidations($requestData) : null;
             if (isset($manualValidationsReturn["errors"])) {
                 if ($manualValidationsReturn["errors"]) {
-                    return $this->responseError($manualValidationsReturn["errors"], $manualValidationsReturn["status"] ?? 400);
+                    return $this->responseError($manualValidationsReturn["errors"], $manualValidationsReturn["status"] ?? 422);
                 }
             }
             $manualValidationsReturn["data"] = isset($manualValidationsReturn["data"]) ? $manualValidationsReturn["data"] : [];
@@ -399,7 +399,7 @@ class APIController extends BaseController
         if ($modelId) {
             $validator = Validator::make($requestData, $validations, $validationsText);
             if ($validator->fails()) {
-                return $this->responseError($validator->errors()->toArray(), 400);
+                return $this->responseError($validator->errors()->toArray(), 422);
             }
             $modelClassExployed = explode("\\", $modelClass);
             $model = call_user_func_array([$modelClass, 'find'], [$modelId]);
@@ -412,7 +412,7 @@ class APIController extends BaseController
                 $manualValidationsReturn = ($manualValidations) ? $manualValidations($requestData, $model) : null;
                 if (isset($manualValidationsReturn["errors"])) {
                     if ($manualValidationsReturn["errors"]) {
-                        return $this->responseError($manualValidationsReturn["errors"], $manualValidationsReturn["status"] ?? 400);
+                        return $this->responseError($manualValidationsReturn["errors"], $manualValidationsReturn["status"] ?? 422);
                     }
                 }
                 $manualValidationsReturn["data"] = isset($manualValidationsReturn["data"], $model) ? $manualValidationsReturn["data"] : [];
@@ -430,7 +430,7 @@ class APIController extends BaseController
                 return $this->responseError(["id" => ["$elementName n'existe pas"]], 404);
             }
         } else {
-            return $this->responseError(["id" => ["$elementName est manquant"]], 401);
+            return $this->responseError(["id" => ["$elementName est manquant"]], 422);
         }
     }
 

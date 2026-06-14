@@ -61,7 +61,8 @@ class {{ class }} extends AuthenticatableBase
 	 * @var array<int, string>
 	 */
 	protected $appends = [
-		// Exemple: 'ability_rules', 'profile_fr'
+		// 'ability_rules' est déjà ajouté par AuthenticatableBase (consommé par CASL).
+		// Ajoutez ici vos propres accesseurs sérialisés.
 	];
 
 	/**
@@ -95,43 +96,29 @@ class {{ class }} extends AuthenticatableBase
 	 */
 	protected $enumCasts = [
 		// Exemple:
-		// 'profile' => [
-		//     'admin' => 'Administrateur',
-		//     'user' => 'Utilisateur',
-		//     'manager' => 'Gestionnaire',
+		// [
+		//     'colum_name' => 'status',
+		//     'additional_column_name' => 'status_fr',
+		//     'choices' => ['active' => 'Actif', 'inactive' => 'Inactif'],
 		// ],
 	];
 
 	/*
 	|--------------------------------------------------------------------------
-	| Permissions et Abilités
+	| Permissions et Abilités (RBAC dynamique)
 	|--------------------------------------------------------------------------
 	|
-	| Système de permissions pour BasePolicy
+	| Ce modèle hérite de AuthenticatableBase, qui inclut le trait HasRoles.
+	| Sont donc déjà disponibles, sans code supplémentaire :
+	|   - la relation roles()
+	|   - l'accessor `ability_rules` (format CASL, calculé depuis la base)
+	|   - les helpers isAdmin(), hasRole($name), hasPermissionTo($action, $subject)
+	|   - assignRole(...), syncRoles(...), removeRole(...)
+	|
+	| Ne redéfinissez getAbilityRulesAttribute() que si vous souhaitez une logique
+	| de calcul des permissions totalement personnalisée (cela écrase le trait).
 	|
 	*/
-
-	/**
-	 * Règles d'abilités pour le système de permissions
-	 *
-	 * @return array
-	 */
-	public function getAbilityRulesAttribute(): array
-	{
-		// Exemple de configuration par profil
-		// return match($this->profile) {
-		//     'admin' => [
-		//         ['subject' => ['all'], 'action' => ['manage']],
-		//     ],
-		//     'user' => [
-		//         ['subject' => ['post'], 'action' => ['read', 'create']],
-		//         ['subject' => ['comment'], 'action' => ['read', 'create', 'update', 'delete']],
-		//     ],
-		//     default => [],
-		// };
-
-		return [];
-	}
 
 	/*
 	|--------------------------------------------------------------------------
@@ -163,11 +150,11 @@ class {{ class }} extends AuthenticatableBase
 	|--------------------------------------------------------------------------
 	*/
 
-	// Exemple: Accesseur pour le profil formaté
-	// protected function profileFr(): Attribute
+	// Exemple: Accesseur personnalisé
+	// protected function statusFr(): Attribute
 	// {
 	//     return Attribute::make(
-	//         get: fn () => $this->enumCasts['profile'][$this->profile] ?? $this->profile,
+	//         get: fn () => $this->status === 'active' ? 'Actif' : 'Inactif',
 	//     );
 	// }
 
@@ -175,26 +162,12 @@ class {{ class }} extends AuthenticatableBase
 	|--------------------------------------------------------------------------
 	| Méthodes personnalisées
 	|--------------------------------------------------------------------------
+	|
+	| isAdmin(), hasRole(), hasPermissionTo() sont fournis par le trait HasRoles.
+	| Exemple d'utilisation :
+	|   if ($user->isAdmin()) { ... }
+	|   if ($user->hasRole('manager')) { ... }
+	|   if ($user->hasPermissionTo('validate', 'user')) { ... }
+	|
 	*/
-
-	/**
-	 * Vérifie si l'utilisateur est administrateur
-	 *
-	 * @return bool
-	 */
-	public function isAdmin(): bool
-	{
-		return $this->profile === 'admin';
-	}
-
-	/**
-	 * Vérifie si l'utilisateur a un profil spécifique
-	 *
-	 * @param string $profile
-	 * @return bool
-	 */
-	public function hasProfile(string $profile): bool
-	{
-		return $this->profile === $profile;
-	}
 }

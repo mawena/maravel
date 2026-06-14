@@ -31,7 +31,7 @@ class AuthController extends APIController
             "password" => 'required'
         ]);
         if ($validator->fails()) {
-            return $this->responseError($validator->errors(), 422);
+            return $this->responseError($validator->errors()->toArray(), 422);
         } else {
             $user = User::where('email', $request->email)->first();
             if ($user && Hash::check($request->password, $user->password)) {

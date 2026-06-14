@@ -314,6 +314,7 @@ class APIController extends BaseController
         $manualValidationsReturn = ($manualValidations) ? $manualValidations($requestData) : null;
         if (isset($manualValidationsReturn["errors"])) {
             if ($manualValidationsReturn["errors"]) {
+                DB::rollBack();
                 return $this->responseError($manualValidationsReturn["errors"], $manualValidationsReturn["status"] ?? 422);
             }
         }
@@ -356,11 +357,13 @@ class APIController extends BaseController
         foreach ($requestDataArray as $requestData) {
             $validator = Validator::make($requestData, $validations, $validationsText);
             if ($validator->fails()) {
+                DB::rollBack();
                 return $this->responseError($validator->errors()->toArray(), 422);
             }
             $manualValidationsReturn = ($manualValidations) ? $manualValidations($requestData) : null;
             if (isset($manualValidationsReturn["errors"])) {
                 if ($manualValidationsReturn["errors"]) {
+                    DB::rollBack();
                     return $this->responseError($manualValidationsReturn["errors"], $manualValidationsReturn["status"] ?? 422);
                 }
             }
@@ -412,6 +415,7 @@ class APIController extends BaseController
                 $manualValidationsReturn = ($manualValidations) ? $manualValidations($requestData, $model) : null;
                 if (isset($manualValidationsReturn["errors"])) {
                     if ($manualValidationsReturn["errors"]) {
+                        DB::rollBack();
                         return $this->responseError($manualValidationsReturn["errors"], $manualValidationsReturn["status"] ?? 422);
                     }
                 }

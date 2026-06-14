@@ -1,7 +1,7 @@
 {
     "name": "mawena/maravel",
-    "version": "3.0.0",
-    "description": "Librairie Laravel avancée pour APIController avec système de permissions, modèles enrichis et policies automatiques",
+    "version": "4.0.0",
+    "description": "Librairie Laravel avancée pour APIController avec système de rôles & permissions dynamiques (RBAC en base), modèles enrichis et policies automatiques",
     "type": "library",
     "keywords": [
         "laravel",

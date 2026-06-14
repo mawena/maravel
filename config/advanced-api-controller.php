@@ -77,10 +77,45 @@ return [
 		'enabled' => true,
 		'use_advanced_policies' => true,
 		'default_model_name' => '',
-		'admin_profile' => 'admin',
 		'permission_checks' => [
 			'before_all' => true,
 			'custom_checks' => true,
+		],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Configuration RBAC (rôles & permissions dynamiques) — v4
+	|--------------------------------------------------------------------------
+	|
+	| Depuis la v4, les rôles et permissions sont stockés en base de données
+	| (et non plus codés en dur via un enum `profile`). Cette section permet
+	| de personnaliser les classes de modèles et les noms de tables utilisés.
+	|
+	| - models : les classes Eloquent à utiliser. Laissez les sous-classes
+	|   générées dans App\Models, ou pointez vers vos propres classes.
+	| - tables : les noms des tables (pivots inclus).
+	| - super_admin : un rôle dont `is_super_admin = true` accorde tous les
+	|   droits, et injecte automatiquement la règle CASL « manage / all »
+	|   dans `ability_rules`.
+	|
+	*/
+
+	'rbac' => [
+		'models' => [
+			'user' => \App\Models\User::class,
+			'role' => \App\Models\Role::class,
+			'permission' => \App\Models\Permission::class,
+		],
+		'tables' => [
+			'roles' => 'roles',
+			'permissions' => 'permissions',
+			'permission_role' => 'permission_role',
+			'role_user' => 'role_user',
+		],
+		'super_admin' => [
+			'flag_column' => 'is_super_admin',
+			'inject_manage_all' => true,
 		],
 	],
 

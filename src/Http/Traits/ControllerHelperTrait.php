@@ -73,6 +73,8 @@ trait ControllerHelperTrait
         $relationData = collect($requestData)->filter(function ($value, $key) use ($prefix) {
             return strpos($key, $prefix) === 0;
         });
+        $modelPath = "App\\Models\\$modelName";
+        $currentObjet = new $modelPath();
         foreach ($relationData as $filter => $value) {
             if (in_array($value, ["true", "false"])) {
                 $value = ($value == "true") ? 1 : 0;
@@ -80,6 +82,13 @@ trait ControllerHelperTrait
             $relation = str_replace(">", ".", substr($filter, strlen($prefix)));
             // $valueArray = array_filter(explode('-', $value));
             if ($value) {
+                // On vérifie que la relation existe avant de l'utiliser pour éviter
+                // un RelationNotFoundException (HTTP 500) déclenchable par le client.
+                try {
+                    $currentObjet->load($relation);
+                } catch (RelationNotFoundException $ex) {
+                    continue;
+                }
                 if ($prefix == "have_") {
                     $query->whereHas($relation);
                 } else {

@@ -36,6 +36,12 @@ class FieldFilterMiddleware
         $onlyFields   = $only   ? array_values(array_filter(array_map('trim', explode(',', $only))))   : null;
         $exceptFields = $except ? array_values(array_filter(array_map('trim', explode(',', $except)))) : [];
 
+        // Un header "Only" présent mais vide après nettoyage (ex: ",,," ou "  ")
+        // doit se comporter comme une absence de header, et non vider toute la réponse.
+        if (empty($onlyFields)) {
+            $onlyFields = null;
+        }
+
         $body = $response->getData(true);
 
         if (array_key_exists('data', $body)) {
@@ -67,20 +73,47 @@ class FieldFilterMiddleware
             ));
         }
 
-        // Associatif : si au moins une valeur est scalaire, c'est les attributs du modèle
+        // Associatif : si au moins une valeur est scalaire, on considère ce nœud
+        // comme un sac d'attributs de modèle.
+        $hasScalar = false;
         foreach ($data as $value) {
             if (!is_array($value)) {
-                return $this->applyFieldFilter($data, $only, $except);
+                $hasScalar = true;
+                break;
             }
         }
 
-        // Tous les valeurs sont des tableaux → wrapper → on descend dans chaque entrée
-        $result = [];
-        foreach ($data as $key => $value) {
-            $result[$key] = $this->filterFields($value, $only, $except);
+        if (!$hasScalar) {
+            // Toutes les valeurs sont des tableaux → wrapper (ex: {"user": {...}})
+            // → on descend dans chaque entrée.
+            $result = [];
+            foreach ($data as $key => $value) {
+                $result[$key] = $this->filterFields($value, $only, $except);
+            }
+
+            return $result;
         }
 
-        return $result;
+        // Sac d'attributs de modèle → on applique le filtre à ce niveau.
+        $filtered = $this->applyFieldFilter($data, $only, $except);
+
+        // Garde-fou anti-destruction : si l'inclusion "Only" vide totalement un nœud
+        // non vide, c'est qu'aucun des champs demandés n'appartient à ce nœud → il
+        // s'agit en réalité d'un wrapper mixte (ex: {"userToken": "...", "user": {...}}
+        // renvoyé par le login). On préserve alors les valeurs scalaires (métadonnées)
+        // et on descend filtrer les sous-objets, au lieu de tout effacer.
+        if ($only !== null && empty($filtered) && !empty($data)) {
+            $result = [];
+            foreach ($data as $key => $value) {
+                $result[$key] = is_array($value)
+                    ? $this->filterFields($value, $only, $except)
+                    : $value;
+            }
+
+            return $result;
+        }
+
+        return $filtered;
     }
 
     /**

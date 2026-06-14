@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\PermissionController;
+use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +22,24 @@ Route::controller(AuthController::class)->group(function () {
         Route::middleware('account.status')->group(function () {
             // Routes utilisateurs
             Route::prefix('users')->name('user.')->controller(UserController::class)->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('/', 'store')->name('store');
+                Route::get('/{id}', 'show')->name('show');
+                Route::put('/{id}', 'update')->name('update');
+                Route::delete('/{id}', 'destroy')->name('destroy');
+            });
+
+            // Routes des rôles (RBAC dynamique)
+            Route::prefix('roles')->name('role.')->controller(RoleController::class)->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('/', 'store')->name('store');
+                Route::get('/{id}', 'show')->name('show');
+                Route::put('/{id}', 'update')->name('update');
+                Route::delete('/{id}', 'destroy')->name('destroy');
+            });
+
+            // Routes des permissions (RBAC dynamique)
+            Route::prefix('permissions')->name('permission.')->controller(PermissionController::class)->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::post('/', 'store')->name('store');
                 Route::get('/{id}', 'show')->name('show');

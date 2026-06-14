@@ -51,9 +51,9 @@ class InstallCommand extends Command
         $this->configureApiRoutes();
         $this->newLine();
 
-        // Étape 4: Créer la migration pour le profil utilisateur
-        $this->info('👤 Création de la migration pour le profil utilisateur...');
-        $this->createProfileMigration();
+        // Étape 4: Créer les migrations RBAC (rôles & permissions dynamiques)
+        $this->info('🧩 Création des migrations RBAC (rôles & permissions)...');
+        $this->createRbacMigrations();
         $this->newLine();
 
         // Étape 4b: Créer la migration pour le statut du compte
@@ -66,17 +66,33 @@ class InstallCommand extends Command
         $this->configureUserModel();
         $this->newLine();
 
-        // Étape 5b: Créer le contrôleur UserController
+        // Étape 5b: Créer les modèles Role et Permission
+        $this->info('🗂️  Création des modèles Role et Permission...');
+        $this->createRbacModels();
+        $this->newLine();
+
+        // Étape 5c: Créer le contrôleur UserController
         $this->info('👥 Création du contrôleur des utilisateurs...');
         $this->createUserController();
         $this->newLine();
 
-        // Étape 5c: Créer la policy UserPolicy
-        $this->info('🔐 Création de la policy des utilisateurs...');
-        $this->createUserPolicy();
+        // Étape 5d: Créer les contrôleurs RoleController et PermissionController
+        $this->info('🎛️  Création des contrôleurs Role et Permission...');
+        $this->createRbacControllers();
         $this->newLine();
 
-        // Étape 5d: Intégrer le middleware AccountStatusMiddleware
+        // Étape 5e: Créer les policies (User, Role, Permission)
+        $this->info('🔐 Création des policies...');
+        $this->createUserPolicy();
+        $this->createRbacPolicies();
+        $this->newLine();
+
+        // Étape 5f: Créer le seeder RolePermissionSeeder
+        $this->info('🌱 Création du seeder RBAC...');
+        $this->createRolePermissionSeeder();
+        $this->newLine();
+
+        // Étape 5g: Intégrer le middleware AccountStatusMiddleware
         $this->info('🛡️  Intégration du middleware de statut de compte...');
         $this->integrateAccountStatusMiddleware();
         $this->newLine();
@@ -95,8 +111,10 @@ class InstallCommand extends Command
 
         $this->comment('Prochaines étapes :');
         $this->line('1. Lancez les migrations : php artisan migrate');
-        $this->line('2. Testez l\'authentification via les endpoints API');
-        $this->line('3. Consultez la documentation : https://github.com/mawena/maravel');
+        $this->line('2. Initialisez les rôles/permissions : php artisan db:seed --class=RolePermissionSeeder');
+        $this->line('3. Assignez un rôle à un utilisateur : $user->assignRole(\'admin\');');
+        $this->line('4. Testez l\'authentification via les endpoints API');
+        $this->line('5. Consultez la documentation : https://github.com/mawena/maravel');
         $this->newLine();
 
         return Command::SUCCESS;
@@ -221,46 +239,203 @@ class InstallCommand extends Command
         $this->line('• GET    /api/users/{id} - Voir un utilisateur (authentifié + statut actif)');
         $this->line('• PUT    /api/users/{id} - Modifier un utilisateur (authentifié + statut actif)');
         $this->line('• DELETE /api/users/{id} - Supprimer un utilisateur (authentifié + statut actif)');
+        $this->line('• GET    /api/roles - Liste des rôles');
+        $this->line('• POST   /api/roles - Créer un rôle (+ permissions)');
+        $this->line('• GET    /api/roles/{id} - Voir un rôle');
+        $this->line('• PUT    /api/roles/{id} - Modifier un rôle (+ permissions)');
+        $this->line('• DELETE /api/roles/{id} - Supprimer un rôle');
+        $this->line('• GET    /api/permissions - Liste des permissions');
+        $this->line('• POST   /api/permissions - Créer une permission (action + sujet)');
+        $this->line('• GET    /api/permissions/{id} - Voir une permission');
+        $this->line('• PUT    /api/permissions/{id} - Modifier une permission');
+        $this->line('• DELETE /api/permissions/{id} - Supprimer une permission');
     }
 
     /**
-     * Crée la migration pour ajouter le profil utilisateur
+     * Crée les migrations du système RBAC (rôles & permissions dynamiques).
+     *
+     * Ordre important : permissions et roles d'abord, puis les pivots
+     * (permission_role, role_user), puis la suppression de l'ancien champ profile.
      */
-    protected function createProfileMigration()
+    protected function createRbacMigrations()
     {
-        // Nom de la migration avec timestamp
-        $timestamp = date('Y_m_d_His');
-        $migrationName = "{$timestamp}_add_profile_to_users_table.php";
-        $migrationPath = database_path('migrations/' . $migrationName);
+        // [stub => suffixe du nom de fichier], dans l'ordre d'exécution voulu.
+        $migrations = [
+            'migration.create_permissions_table.stub' => 'create_permissions_table',
+            'migration.create_roles_table.stub' => 'create_roles_table',
+            'migration.create_permission_role_table.stub' => 'create_permission_role_table',
+            'migration.create_role_user_table.stub' => 'create_role_user_table',
+            'migration.drop_profile_from_users.stub' => 'drop_profile_from_users_table',
+        ];
 
-        // Vérifier si une migration similaire existe déjà
-        $existingMigrations = File::glob(database_path('migrations/*_add_profile_to_users_table.php'));
+        $offset = 0;
+        foreach ($migrations as $stub => $suffix) {
+            // Timestamps croissants pour garantir l'ordre d'exécution.
+            $timestamp = date('Y_m_d_His', time() + $offset);
+            $offset++;
 
-        if (!empty($existingMigrations)) {
-            if (!$this->confirm('Une migration pour ajouter le profil utilisateur existe déjà. Voulez-vous la remplacer ?', false)) {
-                $this->warn('⚠️  Migration non créée.');
-                return;
+            $migrationPath = database_path("migrations/{$timestamp}_{$suffix}.php");
+
+            // Éviter les doublons si une migration identique existe déjà.
+            $existing = File::glob(database_path("migrations/*_{$suffix}.php"));
+            if (!empty($existing)) {
+                $this->warn("⚠️  Migration {$suffix} déjà présente, ignorée.");
+                continue;
             }
-            // Supprimer l'ancienne migration
-            foreach ($existingMigrations as $oldMigration) {
-                File::delete($oldMigration);
+
+            $stubPath = __DIR__ . '/../../Stubs/' . $stub;
+            if (!File::exists($stubPath)) {
+                $this->error("❌ Le fichier stub {$stub} est introuvable.");
+                continue;
             }
+
+            File::copy($stubPath, $migrationPath);
+
+            $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $migrationPath);
+            $this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
         }
 
-        // Charger le stub de la migration
-        $stubPath = __DIR__ . '/../../Stubs/migration.add_profile_to_users.stub';
+        $this->info('✓ Migrations RBAC créées avec succès.');
+    }
 
-        if (!File::exists($stubPath)) {
-            $this->error('❌ Le fichier stub migration.add_profile_to_users.stub est introuvable.');
+    /**
+     * Crée les modèles App\Models\Role et App\Models\Permission.
+     */
+    protected function createRbacModels()
+    {
+        $models = [
+            'Role' => 'role-model.stub',
+            'Permission' => 'permission-model.stub',
+        ];
+
+        $targetDir = app_path('Models');
+        if (!File::isDirectory($targetDir)) {
+            File::makeDirectory($targetDir, 0755, true);
+        }
+
+        foreach ($models as $name => $stub) {
+            $targetPath = $targetDir . "/{$name}.php";
+
+            if (File::exists($targetPath)) {
+                $this->warn("⚠️  Le modèle {$name} existe déjà, ignoré.");
+                continue;
+            }
+
+            $stubPath = __DIR__ . '/../../Stubs/' . $stub;
+            if (!File::exists($stubPath)) {
+                $this->error("❌ Le fichier stub {$stub} est introuvable.");
+                continue;
+            }
+
+            File::copy($stubPath, $targetPath);
+            $this->info("✓ Modèle {$name} créé.");
+            $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $targetPath);
+            $this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
+        }
+    }
+
+    /**
+     * Crée les contrôleurs RoleController et PermissionController.
+     */
+    protected function createRbacControllers()
+    {
+        $controllers = [
+            'RoleController' => 'role-controller.stub',
+            'PermissionController' => 'permission-controller.stub',
+        ];
+
+        $targetDir = app_path('Http/Controllers/API');
+        if (!File::isDirectory($targetDir)) {
+            File::makeDirectory($targetDir, 0755, true);
+        }
+
+        foreach ($controllers as $name => $stub) {
+            $targetPath = $targetDir . "/{$name}.php";
+
+            if (File::exists($targetPath)) {
+                $this->warn("⚠️  Le contrôleur {$name} existe déjà, ignoré.");
+                continue;
+            }
+
+            $stubPath = __DIR__ . '/../../Stubs/' . $stub;
+            if (!File::exists($stubPath)) {
+                $this->error("❌ Le fichier stub {$stub} est introuvable.");
+                continue;
+            }
+
+            File::copy($stubPath, $targetPath);
+            $this->info("✓ Contrôleur {$name} créé.");
+            $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $targetPath);
+            $this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
+        }
+    }
+
+    /**
+     * Crée les policies RolePolicy et PermissionPolicy et les enregistre.
+     */
+    protected function createRbacPolicies()
+    {
+        $policies = [
+            'RolePolicy' => ['stub' => 'role-policy.stub', 'model' => 'Role'],
+            'PermissionPolicy' => ['stub' => 'permission-policy.stub', 'model' => 'Permission'],
+        ];
+
+        $targetDir = app_path('Policies');
+        if (!File::isDirectory($targetDir)) {
+            File::makeDirectory($targetDir, 0755, true);
+        }
+
+        foreach ($policies as $name => $info) {
+            $targetPath = $targetDir . "/{$name}.php";
+
+            if (File::exists($targetPath)) {
+                $this->warn("⚠️  La policy {$name} existe déjà, ignorée.");
+            } else {
+                $stubPath = __DIR__ . '/../../Stubs/' . $info['stub'];
+                if (!File::exists($stubPath)) {
+                    $this->error("❌ Le fichier stub {$info['stub']} est introuvable.");
+                    continue;
+                }
+
+                File::copy($stubPath, $targetPath);
+                $this->info("✓ Policy {$name} créée.");
+                $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $targetPath);
+                $this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
+            }
+
+            // Enregistrer la policy dans AuthServiceProvider (si présent).
+            $this->registerPolicyInAuthServiceProvider($info['model'], $name);
+        }
+    }
+
+    /**
+     * Crée le seeder RolePermissionSeeder.
+     */
+    protected function createRolePermissionSeeder()
+    {
+        $targetDir = database_path('seeders');
+        if (!File::isDirectory($targetDir)) {
+            File::makeDirectory($targetDir, 0755, true);
+        }
+
+        $targetPath = $targetDir . '/RolePermissionSeeder.php';
+
+        if (File::exists($targetPath)) {
+            $this->warn('⚠️  Le seeder RolePermissionSeeder existe déjà, ignoré.');
             return;
         }
 
-        // Copier le stub vers le fichier de migration
-        File::copy($stubPath, $migrationPath);
+        $stubPath = __DIR__ . '/../../Stubs/seeder.role_permission.stub';
+        if (!File::exists($stubPath)) {
+            $this->error('❌ Le fichier stub seeder.role_permission.stub est introuvable.');
+            return;
+        }
 
-        $this->info('✓ Migration créée avec succès.');
-        $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $migrationPath);
+        File::copy($stubPath, $targetPath);
+        $this->info('✓ Seeder RolePermissionSeeder créé.');
+        $relativePath = str_replace(base_path() . DIRECTORY_SEPARATOR, '', $targetPath);
         $this->line('  <fg=green>' . str_replace('\\', '/', $relativePath) . '</>');
+        $this->comment('  Lancez-le avec : php artisan db:seed --class=RolePermissionSeeder');
     }
 
     /**
@@ -302,11 +477,11 @@ class InstallCommand extends Command
         $this->comment('Modifications apportées :');
         $this->line('• Fusion des use statements');
         $this->line('• Héritage de AuthenticatableBase (priorité librairie)');
-        $this->line('• Fusion des traits existants');
-        $this->line('• Ajout des champs profile, activated, password_change_required dans $fillable');
-        $this->line('• Configuration des $enumCasts pour le profil');
-        $this->line('• Ajout de la méthode getAbilityRulesAttribute()');
-        $this->line('• Ajout de $appends = [\'ability_rules\']');
+        $this->line('• Fusion des traits existants (dont HasRoles via AuthenticatableBase)');
+        $this->line('• Ajout des champs activated, password_change_required dans $fillable');
+        $this->line('• Configuration des $enumCasts (libellés lisibles)');
+        $this->line('• ability_rules est désormais calculé dynamiquement depuis les rôles (RBAC)');
+        $this->line('• Ajout de $appends = [\'ability_rules\'] (consommé par CASL côté frontend)');
         $this->line('• Conservation de vos méthodes et propriétés existantes');
     }
 
@@ -444,46 +619,50 @@ class InstallCommand extends Command
     }
 
     /**
-     * Enregistre la UserPolicy dans AuthServiceProvider si celui-ci existe
+     * Enregistre une policy dans AuthServiceProvider si celui-ci existe.
+     *
+     * @param string $model  Nom court du modèle (ex: "User", "Role").
+     * @param string $policy Nom court de la policy (ex: "UserPolicy").
      */
-    protected function registerPolicyInAuthServiceProvider()
+    protected function registerPolicyInAuthServiceProvider($model = 'User', $policy = 'UserPolicy')
     {
         $authServiceProviderPath = app_path('Providers/AuthServiceProvider.php');
 
         // Vérifier si AuthServiceProvider existe
         if (!File::exists($authServiceProviderPath)) {
-            $this->comment('ℹ️  AuthServiceProvider non trouvé. La policy sera découverte automatiquement.');
+            $this->comment("ℹ️  AuthServiceProvider non trouvé. La policy {$policy} sera découverte automatiquement.");
             return;
         }
 
         // Lire le contenu actuel
         $currentContent = File::get($authServiceProviderPath);
 
-        // Vérifier si UserPolicy est déjà enregistrée
-        if (str_contains($currentContent, 'UserPolicy')) {
-            $this->comment('ℹ️  UserPolicy déjà enregistrée dans AuthServiceProvider.');
+        // Vérifier si la policy est déjà enregistrée
+        if (str_contains($currentContent, "{$model}::class => {$policy}::class")) {
+            $this->comment("ℹ️  {$policy} déjà enregistrée dans AuthServiceProvider.");
             return;
         }
 
-        // Ajouter l'import de User et UserPolicy
-        if (!str_contains($currentContent, 'use App\Models\User;')) {
+        // Ajouter l'import du modèle
+        if (!str_contains($currentContent, "use App\\Models\\{$model};")) {
             $currentContent = preg_replace(
                 '/(namespace App\\\\Providers;)/',
-                "$1\n\nuse App\Models\User;",
+                "$1\n\nuse App\\Models\\{$model};",
                 $currentContent
             );
         }
 
-        if (!str_contains($currentContent, 'use App\Policies\UserPolicy;')) {
+        // Ajouter l'import de la policy
+        if (!str_contains($currentContent, "use App\\Policies\\{$policy};")) {
             $currentContent = preg_replace(
-                '/(use App\\\\Models\\\\User;)/',
-                "$1\nuse App\Policies\UserPolicy;",
+                '/(namespace App\\\\Providers;)/',
+                "$1\n\nuse App\\Policies\\{$policy};",
                 $currentContent
             );
         }
 
         // Ajouter la policy dans le tableau $policies
-        $policyEntry = "\n        User::class => UserPolicy::class,";
+        $policyEntry = "\n        {$model}::class => {$policy}::class,";
 
         if (preg_match('/protected\s+\$policies\s*=\s*\[/', $currentContent)) {
             // Le tableau $policies existe déjà
@@ -508,7 +687,7 @@ class InstallCommand extends Command
         // Écrire le contenu modifié
         File::put($authServiceProviderPath, $currentContent);
 
-        $this->info('✓ UserPolicy enregistrée dans AuthServiceProvider.');
+        $this->info("✓ {$policy} enregistrée dans AuthServiceProvider.");
     }
 
     /**

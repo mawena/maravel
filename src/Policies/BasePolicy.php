@@ -31,17 +31,13 @@ class BasePolicy
 	 */
 	public function before($connectedUser, string $ability)
 	{
-		// Les administrateurs ont tous les droits
+		// Les super-administrateurs ont tous les droits.
+		// isAdmin() détecte la règle « manage / all » dans les ability_rules,
+		// ce qui couvre les rôles is_super_admin comme toute permission explicite
+		// « manage all ». (Auparavant, une comparaison tableau == "all" rendait
+		// ce raccourci inopérant — corrigé en v4.)
 		if ($this->isAdmin($connectedUser)) {
 			return Response::allow();
-		}
-
-		// Vérification des permissions globales "manage"
-		$connectedUserArray = $connectedUser->toArray();
-		foreach ($connectedUserArray["ability_rules"] as $ability_rule) {
-			if ($ability_rule["subject"] == "all" && in_array("manage", $ability_rule["action"])) {
-				return Response::allow();
-			}
 		}
 
 		// Retourne null pour continuer avec les vérifications spécifiques

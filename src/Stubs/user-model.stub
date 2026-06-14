@@ -20,7 +20,6 @@ class User extends AuthenticatableBase
         'name',
         'email',
         'password',
-        'profile',
         'activated',
         'password_change_required',
     ];
@@ -36,63 +35,40 @@ class User extends AuthenticatableBase
     ];
 
     /**
-     * The accessors to append to the model's array form.
+     * Les accesseurs ajoutés à la sérialisation.
      *
-     * @var array
+     * `ability_rules` (format CASL) est calculé dynamiquement depuis les rôles
+     * assignés à l'utilisateur (trait HasRoles), pour être consommé par CASL
+     * côté frontend.
+     *
+     * @var array<int, string>
      */
-    public $appends = [
-        
+    protected $appends = [
+        'ability_rules',
     ];
 
     /**
-     * Casts d'énumération pour le profil
+     * Casts d'énumération (libellés lisibles)
      *
      * @var array
      */
     protected $enumCasts = [
         [
-			'colum_name' => 'profile',
-			'additional_column_name' => "profile_fr",
-			'choices' => [
-				'admin' => "Adminitrateur",
-				'other' => "Métier",
-			]
-		],
-		[
-			'colum_name' => 'profile',
-			'additional_column_name' => "ability_rules",
-			'choices' => [
-				'admin' => [
-					[
-						'subject' => ['all'],
-						'action' => ['manage'],
-					],
-				],
-				'other' => [
-					[
-						'subject' => ['user'],
-						'action' => ['read'],
-					],
-				],
-			],
-		],
-		[
-			'colum_name' => 'activated',
-			'additional_column_name' => "activated_fr",
-			'choices' => [
-				1 => "Oui",
-				0 => "Non",
-			]
-		],
-		[
-			'colum_name' => 'password_change_required',
-			'additional_column_name' => "password_change_required_fr",
-			'choices' => [
-				1 => "Obligatoire",
-				0 => "Facultatif",
-			]
-		],
-		
+            'colum_name' => 'activated',
+            'additional_column_name' => 'activated_fr',
+            'choices' => [
+                1 => 'Oui',
+                0 => 'Non',
+            ],
+        ],
+        [
+            'colum_name' => 'password_change_required',
+            'additional_column_name' => 'password_change_required_fr',
+            'choices' => [
+                1 => 'Obligatoire',
+                0 => 'Facultatif',
+            ],
+        ],
     ];
 
     /**

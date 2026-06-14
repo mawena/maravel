@@ -5,6 +5,52 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-06-14
+
+### Ajouté
+- **🎉 Système de rôles & permissions DYNAMIQUES (RBAC en base de données)** — refonte majeure remplaçant l'ancien système statique (`profile` enum + `ability_rules` codés en dur).
+  - **Nouvelles tables** : `permissions` (couples `action` + `subject`, uniques), `roles` (avec drapeau `is_super_admin`), pivots `permission_role` et `role_user` (relation **many-to-many** : un utilisateur peut avoir plusieurs rôles).
+  - **Permissions non figées** : on peut créer autant de permissions que nécessaire à l'exécution (ex : `action: validate, subject: user`), sans toucher au code.
+  - **Modèles de base** : `Maravel\Models\Role` et `Maravel\Models\Permission` (à étendre dans `App\Models`).
+  - **Trait `Maravel\Models\Concerns\HasRoles`** (inclus d'office dans `AuthenticatableBase`) :
+    - relation `roles()`
+    - accessor **`ability_rules`** désormais **calculé dynamiquement depuis la base** (rôles → permissions), au **format CASL inchangé** → le frontend Vue.js / CASL continue de fonctionner sans modification
+    - helpers : `isAdmin()`, `hasRole($name)`, `hasPermissionTo($action, $subject)`, `assignRole(...)`, `syncRoles(...)`, `removeRole(...)`
+  - **Super-admin (double mécanisme)** : un rôle `is_super_admin = true` accorde tous les droits ET injecte automatiquement la règle CASL `{subject: ['all'], action: ['manage']}` dans `ability_rules`.
+  - **CRUD complet généré** :
+    - `RoleController` : CRUD des rôles + synchronisation des permissions au create/update. Le tableau `permissions` accepte des **ids existants** et/ou des **objets `{action, subject}` créés à la volée** (find-or-create).
+    - `PermissionController` : CRUD des permissions (unicité du couple `action` + `subject`).
+    - `RolePolicy`, `PermissionPolicy`, et `RolePermissionSeeder` (rôle `admin` + permissions de base).
+  - **Routes** : `GET/POST/GET{id}/PUT{id}/DELETE{id}` pour `roles` et `permissions` (sous `auth:sanctum` + `account.status`).
+  - **Configuration** : nouvelle section `rbac` dans `config/advanced-api-controller.php` (classes de modèles, noms de tables, super-admin).
+  - **Installateur** : `php artisan maravel:install` génère désormais migrations RBAC, modèles, contrôleurs, policies, seeder et routes.
+
+### Modifié
+- **BREAKING CHANGE — Suppression du champ `profile`** : le champ enum `profile` sur `users` est supprimé (migration `drop_profile_from_users`) au profit des rôles dynamiques.
+- **`AuthenticatableBase`** intègre le trait `HasRoles` et ajoute `ability_rules` à `$appends` par défaut.
+- **`PermissionCheckerTrait::isAdmin()`** ne s'appuie plus sur `profile === 'admin'` mais sur la présence de la règle « manage / all » dans `ability_rules`. `hasProfile()` est remplacé par `hasRole()`.
+- **`user-model.stub`** réécrit : plus de `profile`, `ability_rules` calculé via le trait `HasRoles`.
+- **`model.authenticatable.stub`** aligné sur le RBAC (suppression des méthodes `isAdmin`/`hasProfile`/`getAbilityRulesAttribute` basées sur `profile`).
+
+### Corrigé
+- **`BasePolicy::before()` (raccourci « manage all » inopérant)** : la comparaison `$rule["subject"] == "all"` confrontait un tableau à une chaîne (toujours `false`). Le raccourci super-admin repose désormais sur `isAdmin()` (détection « manage / all » via `in_array`). *(finding cloud review bug_003)*
+- **`APIController` — fuite de transaction** : ajout de `DB::rollBack()` sur les retours d'erreur précoces de `modelStore()`, `modelStoreMulty()` et `modelUpdate()` (les insertions des itérations précédentes restaient dans une transaction ouverte sur les runtimes longue durée). *(bug_002)*
+- **`ControllerHelperTrait::queryHaveFilter()` — HTTP 500 déclenchable** : une relation inexistante (`?have_xxx=true`) levait `RelationNotFoundException`. La relation est désormais validée (try/catch) comme dans `queryRelationAdd()`. *(bug_001)*
+- **`FieldFilterMiddleware` — effacement silencieux des données** :
+  - un header `X-Maravel-Only` vide après nettoyage (ex : `,,,`) se comportait comme « ne garder aucun champ » → il est désormais traité comme une absence de header. *(bug_009)*
+  - un wrapper mixant métadonnées scalaires et modèle imbriqué (ex : `{userToken, user}` du login) était entièrement vidé → garde-fou anti-destruction : on préserve les scalaires et on descend filtrer les sous-objets. *(bug_010)*
+- **Stub `auth-controller` — erreurs de validation vides** : `$validator->errors()` (MessageBag) est désormais converti via `->toArray()` avant `responseError()`. *(bug_011)*
+
+### Migration depuis la v3
+
+> ⚠️ **Version majeure avec changements cassants.** Voir la section « Migration v3 → v4 » du README pour le détail.
+
+1. Mettez à jour la dépendance puis lancez `php artisan maravel:install` (génère migrations RBAC, modèles, contrôleurs, policies, seeder).
+2. Lancez `php artisan migrate` puis `php artisan db:seed --class=RolePermissionSeeder`.
+3. Remplacez l'usage de `profile` : créez les rôles correspondants et assignez-les (`$user->assignRole('admin')`).
+4. Le champ `profile` est supprimé de la table `users`. Si vous avez des données existantes, créez les rôles équivalents et migrez les affectations **avant** d'exécuter la migration `drop_profile_from_users` (vous pouvez réordonner/retarder cette migration).
+5. Côté frontend : **aucun changement** — `ability_rules` conserve exactement le même format CASL.
+
 ## [3.0.0] - 2026-05-29
 
 ### Modifié

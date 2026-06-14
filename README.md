@@ -1,6 +1,6 @@
 # Maravel
 
-![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-4.0.0-blue.svg)
 ![PHP](https://img.shields.io/badge/php-%5E8.1%7C%5E8.2%7C%5E8.3%7C%5E8.4-777BB4.svg)
 ![Laravel](https://img.shields.io/badge/laravel-%5E10.0%7C%5E11.0%7C%5E12.0%7C%5E13.0-FF2D20.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -45,12 +45,13 @@
 - **Tri dynamique** : Tri ascendant/descendant sur n'importe quelle colonne
 - **Gestion des relations** : Chargement automatique des relations Eloquent via paramètres d'URL
 
-### 🔐 Système de permissions avancé
-- **BasePolicy** : Classe de base pour créer des policies sophistiquées
-- **Permissions par profil** : Support des profils utilisateur (admin, user, etc.)
-- **Règles d'abilités** : Système de règles avec sujets et actions (CASL-like)
-- **PermissionCheckerTrait** : Méthodes helper pour vérifier les permissions facilement
-- **Admin bypass** : Les administrateurs ont accès complet automatiquement
+### 🔐 RBAC dynamique (rôles & permissions en base) — v4
+- **Rôles & permissions stockés en base** : CRUD complet, créables à volonté (plus de `profile` codé en dur)
+- **Multi-rôles** : un utilisateur peut cumuler plusieurs rôles (many-to-many)
+- **Trait `HasRoles`** : `ability_rules` (CASL) calculé dynamiquement, `assignRole()`, `hasPermissionTo()`...
+- **Super-admin** : un rôle `is_super_admin` accorde tous les droits (injecte `manage / all`)
+- **BasePolicy** + **PermissionCheckerTrait** : autorisation automatique via Gate/Policies
+- **Compatible CASL** : le format `ability_rules` envoyé au frontend reste identique
 
 ### 📦 ModelBase enrichi
 - **Formatage automatique des dates** : Conversion automatique avec localisation française
@@ -107,11 +108,14 @@ Cette commande effectue automatiquement les actions suivantes :
 - 📦 Installation de Laravel Sanctum et configuration API (`php artisan install:api`)
 - 🔐 Création du contrôleur `AuthController` dans `app/Http/Controllers/API/`
 - 👥 Création du contrôleur `UserController` avec gestion du changement de mot de passe
-- 🛡️ Création de la policy `UserPolicy` pour les permissions utilisateurs
-- 🛣️ Configuration automatique du fichier `routes/api.php` avec les routes d'authentification et utilisateurs
-- 👤 Création de la migration pour ajouter la colonne `profile` à la table `users`
+- 🧩 **Création des migrations RBAC** : `permissions`, `roles`, `permission_role`, `role_user` et suppression de l'ancien champ `profile`
+- 🗂️ **Création des modèles `App\Models\Role` et `App\Models\Permission`**
+- 🎛️ **Création des contrôleurs `RoleController` et `PermissionController`** (CRUD rôles & permissions)
+- 🛡️ Création des policies `UserPolicy`, `RolePolicy`, `PermissionPolicy`
+- 🌱 **Création du seeder `RolePermissionSeeder`** (rôle `admin` + permissions de base)
+- 🛣️ Configuration automatique du fichier `routes/api.php` (auth, utilisateurs, rôles, permissions)
 - 🔒 Création de la migration pour ajouter les colonnes `activated` et `password_change_required`
-- 🔧 Configuration du modèle `User` pour hériter de `AuthenticatableBase`
+- 🔧 Configuration du modèle `User` pour hériter de `AuthenticatableBase` (trait `HasRoles`)
 - 🛡️ Intégration du middleware `AccountStatusMiddleware` pour vérifier le statut des comptes
 - ⚙️ Publication du fichier de configuration `config/advanced-api-controller.php`
 
@@ -138,13 +142,11 @@ Le contrôleur `AuthController` créé inclut les méthodes suivantes :
 - `logout()` : Déconnexion de l'utilisateur
 
 Le modèle `User` est automatiquement configuré avec :
-- Héritage de `AuthenticatableBase` (au lieu de `Authenticatable`)
-- Champ `profile` dans `$fillable`
+- Héritage de `AuthenticatableBase` (au lieu de `Authenticatable`) — inclut le trait `HasRoles`
 - Champs `activated` et `password_change_required` dans `$fillable` (v2.5.3+)
-- Casts d'énumération pour le profil (`admin` → Administrateur, `other` → Utilisateur)
 - Casts booléens pour `activated` et `password_change_required`
-- **Système de permissions via $enumCasts (v2.7.0+)** : Les `ability_rules` sont générées automatiquement via $enumCasts
-- Labels français automatiques pour `profile`, `activated` et `password_change_required`
+- **RBAC dynamique (v4)** : `ability_rules` (format CASL) est calculé depuis les rôles assignés et ajouté à `$appends`
+- Labels français automatiques pour `activated` et `password_change_required`
 
 **Routes configurées automatiquement** dans `routes/api.php` :
 ```php
@@ -195,26 +197,45 @@ Route::controller(AuthController::class)->group(function () {
 
 **Migrations créées** :
 
-1. `xxxx_xx_xx_xxxxxx_add_profile_to_users_table.php`
+1. Migrations RBAC (v4) — `permissions`, `roles`, `permission_role`, `role_user`, puis suppression de l'ancien champ `profile` :
 ```php
-Schema::table('users', function (Blueprint $table) {
-    $table->enum('profile', ['admin', 'other'])->default('other')->after('email');
+// permissions
+Schema::create('permissions', function (Blueprint $table) {
+    $table->id();
+    $table->string('action');
+    $table->string('subject');
+    $table->string('label')->nullable();
+    $table->string('description')->nullable();
+    $table->timestamps();
+    $table->unique(['action', 'subject']);
 });
+
+// roles
+Schema::create('roles', function (Blueprint $table) {
+    $table->id();
+    $table->string('name')->unique();
+    $table->string('label')->nullable();
+    $table->string('description')->nullable();
+    $table->boolean('is_super_admin')->default(false);
+    $table->timestamps();
+});
+
+// pivots : permission_role (role_id, permission_id) et role_user (role_id, user_id)
 ```
 
 2. `xxxx_xx_xx_xxxxxx_add_account_status_to_users_table.php` (v2.5.3+)
 ```php
 Schema::table('users', function (Blueprint $table) {
-    $table->boolean('activated')->default(true)->after('profile');
+    $table->boolean('activated')->default(true);
     $table->boolean('password_change_required')->default(false)->after('activated');
 });
 ```
 
-**Système de permissions (v2.7.0+)** : Le modèle User est configuré avec un système de permissions basé sur les profils via $enumCasts :
-- **admin** : Accès complet à toutes les ressources (`['subject' => ['all'], 'action' => ['manage']]`)
-- **other** : Permissions limitées (lecture utilisateur uniquement)
-
-Vous pouvez étendre les permissions en modifiant le $enumCasts correspondant dans `app/Models/User.php`. Les `ability_rules` sont maintenant générées automatiquement via le système de casts unifié.
+**Système de permissions (v4)** : les rôles et permissions sont désormais **dynamiques en base de données**. Initialisez-les avec le seeder :
+```bash
+php artisan db:seed --class=RolePermissionSeeder   # crée le rôle "admin" (is_super_admin) + permissions de base
+```
+Puis assignez les rôles : `$user->assignRole('admin');`. Créez de nouveaux rôles/permissions via les endpoints `/api/roles` et `/api/permissions`. Voir [Système de permissions](#système-de-permissions).
 
 **Gestion du statut des comptes** (v2.5.3+) :
 
@@ -301,8 +322,32 @@ Le fichier de configuration `config/advanced-api-controller.php` vous permet de 
 'permissions' => [
     'enabled' => true,
     'use_advanced_policies' => true,
-    'admin_profile' => 'admin',
-    'check_permissions' => true,
+    'permission_checks' => [
+        'before_all' => true,
+        'custom_checks' => true,
+    ],
+],
+```
+
+### RBAC (Rôles & permissions dynamiques — v4)
+
+```php
+'rbac' => [
+    'models' => [
+        'user' => \App\Models\User::class,
+        'role' => \App\Models\Role::class,
+        'permission' => \App\Models\Permission::class,
+    ],
+    'tables' => [
+        'roles' => 'roles',
+        'permissions' => 'permissions',
+        'permission_role' => 'permission_role',
+        'role_user' => 'role_user',
+    ],
+    'super_admin' => [
+        'flag_column' => 'is_super_admin',
+        'inject_manage_all' => true,
+    ],
 ],
 ```
 
@@ -724,41 +769,18 @@ class User extends AuthenticatableBase
         'name',
         'email',
         'password',
-        'profile',
         'activated',
         'password_change_required',
     ];
 
     protected $hidden = ['password', 'remember_token'];
 
-    // Casts d'énumération pour le profil et les permissions (v2.7.0+)
+    // `ability_rules` (CASL) est calculé dynamiquement depuis les rôles
+    // (trait HasRoles inclus dans AuthenticatableBase) et ajouté à $appends.
+    protected $appends = ['ability_rules'];
+
+    // Casts d'énumération pour les libellés lisibles (v4 : plus de `profile`)
     protected $enumCasts = [
-        [
-            'colum_name' => 'profile',
-            'additional_column_name' => 'profile_fr',
-            'choices' => [
-                'admin' => 'Administrateur',
-                'other' => 'Utilisateur',
-            ],
-        ],
-        [
-            'colum_name' => 'profile',
-            'additional_column_name' => 'ability_rules',
-            'choices' => [
-                'admin' => [
-                    [
-                        'subject' => ['all'],
-                        'action' => ['manage'],
-                    ],
-                ],
-                'other' => [
-                    [
-                        'subject' => ['user'],
-                        'action' => ['read'],
-                    ],
-                ],
-            ],
-        ],
         [
             'colum_name' => 'activated',
             'additional_column_name' => 'activated_fr',
@@ -771,8 +793,8 @@ class User extends AuthenticatableBase
             'colum_name' => 'password_change_required',
             'additional_column_name' => 'password_change_required_fr',
             'choices' => [
-                1 => 'Oui',
-                0 => 'Non',
+                1 => 'Obligatoire',
+                0 => 'Facultatif',
             ],
         ],
     ];
@@ -790,23 +812,20 @@ class User extends AuthenticatableBase
         ];
     }
 
-    /**
-     * Vérifie si l'utilisateur est administrateur
-     */
-    public function isAdmin(): bool
-    {
-        return $this->profile === 'admin';
-    }
+    // isAdmin(), hasRole(), hasPermissionTo(), assignRole()... sont fournis
+    // par le trait HasRoles — aucune méthode à écrire ici.
 }
 ```
+
+> **Gestion des rôles** : `$user->assignRole('admin')`, `$user->syncRoles('manager', 'comptable')`, `$user->hasPermissionTo('validate', 'user')`. Voir [Système de permissions](#système-de-permissions).
 
 #### Avantages d'AuthenticatableBase
 
 - ✅ **Compatible avec l'authentification Laravel** : Étend `Illuminate\Foundation\Auth\User`
 - ✅ **Formatage automatique** : Utilise ModelTrait pour les mêmes fonctionnalités que ModelBase
 - ✅ **Support Sanctum** : Compatible avec Laravel Sanctum pour les API
-- ✅ **Permissions intégrées** : Système d'abilités prêt à l'emploi
-- ✅ **Méthodes utilitaires** : isAdmin(), hasProfile() générées automatiquement
+- ✅ **RBAC dynamique intégré** : trait `HasRoles` (rôles, permissions, `ability_rules` CASL) prêt à l'emploi
+- ✅ **Méthodes utilitaires** : `isAdmin()`, `hasRole()`, `hasPermissionTo()`, `assignRole()`...
 
 #### Architecture
 
@@ -967,8 +986,8 @@ class ProductPolicy extends BasePolicy
     // Méthode before() pour vérifications globales
     public function before(User $user, string $ability): ?bool
     {
-        // Les admins ont tous les droits
-        if ($user->profile === 'admin') {
+        // Les super-admins ont tous les droits
+        if ($user->isAdmin()) {
             return true;
         }
 
@@ -1149,9 +1168,9 @@ php artisan maravel:install
 - ✅ Création du contrôleur UserController avec méthode `updatePassword()` (v2.5.3+)
 - ✅ Création de la policy UserPolicy pour les permissions utilisateurs (v2.5.3+)
 - ✅ Configuration automatique des routes d'authentification et utilisateurs dans `routes/api.php`
-- ✅ Création de la migration pour ajouter la colonne `profile` (enum: admin, other)
+- ✅ Création des migrations RBAC (`permissions`, `roles`, `permission_role`, `role_user`, drop `profile`) + modèles, contrôleurs, policies et seeder (v4)
 - ✅ Création de la migration pour `activated` et `password_change_required` (v2.5.3+)
-- ✅ Configuration du modèle User avec AuthenticatableBase et système de permissions
+- ✅ Configuration du modèle User avec AuthenticatableBase et RBAC dynamique (trait `HasRoles`)
 - ✅ Intégration du middleware `AccountStatusMiddleware` dans `bootstrap/app.php` (v2.5.3+)
 - ✅ Publication du fichier de configuration `config/advanced-api-controller.php`
 - ✅ **Fusion intelligente** des fichiers existants (v2.6.0+) : Vos personnalisations sont préservées
@@ -1472,7 +1491,6 @@ Réponse :
             "id": 1,
             "name": "Alice",
             "email": "alice@example.com",
-            "profile": "admin",
             "activated": 1
         }
     },
@@ -1486,11 +1504,11 @@ Si les deux headers sont présents, `X-Maravel-Only` est appliqué en premier, p
 
 ```http
 GET /api/users/1
-X-Maravel-Only: id,name,email,profile
-X-Maravel-Except: profile
+X-Maravel-Only: id,name,email,activated
+X-Maravel-Except: activated
 ```
 
-Résultat : seulement `id`, `name`, `email` (on a gardé 4 champs, puis retiré `profile`).
+Résultat : seulement `id`, `name`, `email` (on a gardé 4 champs, puis retiré `activated`).
 
 ### Structures imbriquées
 
@@ -1585,46 +1603,148 @@ return [
 
 ---
 
+## Migration v3 → v4
+
+La v4 remplace l'ancien système statique (`profile` enum + `ability_rules` codés en dur) par un **RBAC dynamique en base de données**. C'est une **version majeure avec changements cassants**.
+
+### Étapes
+
+1. **Mettez à jour la dépendance** puis relancez l'installateur :
+   ```bash
+   composer update mawena/maravel
+   php artisan maravel:install
+   ```
+   Cela génère : les migrations RBAC (`permissions`, `roles`, `permission_role`, `role_user`, `drop_profile_from_users`), les modèles `App\Models\Role` et `App\Models\Permission`, les contrôleurs `RoleController` / `PermissionController`, les policies, le seeder `RolePermissionSeeder` et les routes.
+
+2. **Lancez les migrations et le seeder** :
+   ```bash
+   php artisan migrate
+   php artisan db:seed --class=RolePermissionSeeder
+   ```
+
+3. **Recréez vos profils sous forme de rôles** et assignez-les :
+   ```php
+   // Ancien : $user->profile = 'admin';
+   $user->assignRole('admin');
+   ```
+
+4. **Données existantes** : le champ `profile` est **supprimé** de `users` par la migration `drop_profile_from_users`. Si vous avez des comptes existants, créez les rôles équivalents et migrez les affectations **avant** d'exécuter cette migration (vous pouvez la retarder/réordonner). Un script de mapping `profile → rôle` peut être lancé dans un seeder dédié.
+
+5. **Frontend (CASL)** : **aucun changement**. `ability_rules` conserve exactement le même format ; il est simplement calculé depuis la base au lieu d'un tableau statique.
+
+### Équivalences
+
+| v3 (statique) | v4 (dynamique) |
+|---------------|----------------|
+| `users.profile` (enum) | tables `roles` + `role_user` |
+| `ability_rules` via `$enumCasts` | accessor calculé par le trait `HasRoles` |
+| `$user->profile === 'admin'` | `$user->isAdmin()` |
+| `profile === 'x'` | `$user->hasRole('x')` |
+| Permissions figées dans le code | CRUD `roles` / `permissions` |
+
+---
+
 ## Système de permissions
 
-Maravel utilise un système de permissions flexible basé sur les profils et les règles d'abilités.
+> **🎉 Nouveau en v4 — RBAC DYNAMIQUE en base de données.** Les rôles et permissions ne sont plus codés en dur (ancien `profile` enum + `ability_rules` statiques). Ils sont désormais **stockés en base** et entièrement gérables via CRUD. Voir aussi la [Migration v3 → v4](#migration-v3--v4).
 
-### Structure des ability_rules
+Maravel fournit un système de rôles & permissions **dynamique** : on peut créer autant de rôles et de permissions que nécessaire à l'exécution, sans toucher au code.
 
-Les utilisateurs doivent avoir un attribut `ability_rules` qui est un tableau de règles :
+### Concepts
 
-```php
-$user->ability_rules = [
-    [
-        'subject' => ['product', 'category'],  // Sujets concernés
-        'action' => ['read', 'create'],         // Actions autorisées
-    ],
-    [
-        'subject' => ['all'],                   // Tous les sujets
-        'action' => ['read'],                   // Action lecture uniquement
-    ],
-];
+| Entité | Description |
+|--------|-------------|
+| **Permission** | Un couple `action` + `subject` (ex : `action: validate, subject: user`). Unique. Créable à volonté. |
+| **Rôle** | Un ensemble de permissions (relation many-to-many). Peut être `is_super_admin` (tous les droits). |
+| **Utilisateur ↔ Rôles** | Many-to-many : un utilisateur peut cumuler plusieurs rôles. |
+
+### Structure des tables
+
+```
+permissions       id, action, subject, label?, description?   UNIQUE(action, subject)
+roles             id, name, label?, description?, is_super_admin
+permission_role   role_id, permission_id   (pivot)
+role_user         role_id, user_id         (pivot)
 ```
 
-### Actions disponibles
+### Calcul dynamique des `ability_rules` (CASL)
 
-- `read` : Lecture (viewAny, view)
-- `create` : Création
-- `update` : Mise à jour
-- `delete` : Suppression
-- `manage` : Toutes les actions
-- Personnalisées : Vous pouvez définir vos propres actions
+L'accessor `ability_rules` du modèle User (trait `HasRoles`, inclus dans `AuthenticatableBase`) est **calculé automatiquement depuis la base** : il agrège les permissions de tous les rôles de l'utilisateur, au **format CASL inchangé**. Il reste ajouté à la sérialisation (`$appends`) pour être consommé par **CASL côté Vue.js**.
 
-### Profils utilisateur
+```json
+// Exemple de payload renvoyé pour l'utilisateur (login, /auth/data...)
+"ability_rules": [
+    { "subject": ["user"], "action": ["read", "update", "validate"] },
+    { "subject": ["post"], "action": ["read", "create"] }
+]
+```
 
-L'attribut `profile` détermine le niveau d'accès :
+Un rôle `is_super_admin = true` injecte automatiquement la règle globale :
+
+```json
+"ability_rules": [ { "subject": ["all"], "action": ["manage"] } ]
+```
+
+### Actions
+
+- `read`, `create`, `update`, `delete` : actions CRUD standard.
+- `manage` : raccourci « toutes les actions ».
+- `all` (sujet) : raccourci « tous les sujets ».
+- **Personnalisées** : créez n'importe quelle action/sujet (ex : `validate`, `export`, `approve`...).
+
+### Gérer les rôles d'un utilisateur
+
+Le trait `HasRoles` ajoute des helpers au modèle User :
 
 ```php
-$user->profile = 'admin';  // Accès complet à tout
-$user->profile = 'user';   // Accès limité selon ability_rules
+$user->assignRole('admin');                  // par nom
+$user->assignRole($role, 5);                 // par modèle, par id
+$user->syncRoles('manager', 'comptable');    // remplace tous les rôles
+$user->removeRole('manager');
+
+$user->isAdmin();                            // au moins un rôle is_super_admin
+$user->hasRole('manager');
+$user->hasPermissionTo('validate', 'user');  // tient compte de manage / all
+$user->roles;                                // relation
+$user->ability_rules;                        // règles CASL calculées
+```
+
+### CRUD des rôles & permissions (généré automatiquement)
+
+`maravel:install` génère `RoleController` et `PermissionController`.
+
+**Créer un rôle avec ses permissions** — `POST /api/roles`. Le tableau `permissions` accepte des **ids existants** et/ou des **objets `{action, subject}` créés à la volée** (find-or-create) :
+
+```json
+{
+    "name": "validateur",
+    "label": "Validateur",
+    "permissions": [
+        { "action": "validate", "subject": "user" },
+        { "action": "read", "subject": "user" },
+        5
+    ]
+}
+```
+
+**Créer une permission** — `POST /api/permissions` :
+
+```json
+{ "action": "export", "subject": "invoice", "label": "Exporter les factures" }
 ```
 
 ### Vérification des permissions
+
+#### Dans les policies (automatique via Gate)
+
+`BasePolicy` lit `ability_rules` et autorise selon le sujet/l'action. Un super-admin passe par `before()`. L'APIController appelle les policies via `Gate::inspect()` — rien à câbler.
+
+```php
+class ProductPolicy extends BasePolicy
+{
+    protected $modelName = "product"; // les actions read/create/update/delete sont gérées
+}
+```
 
 #### Dans les contrôleurs
 
@@ -1638,16 +1758,6 @@ public function index(Request $request)
     }
 
     return Product::all();
-}
-```
-
-#### Dans les policies
-
-```php
-public function update(User $user, Product $product): bool
-{
-    return $this->checkCustomPermission($user, ['update'], 'product')
-        && $product->user_id === $user->id;
 }
 ```
 
@@ -1933,7 +2043,7 @@ class ProductPolicy extends BasePolicy
 
     public function before(User $user, string $ability): ?bool
     {
-        if ($user->profile === 'admin') {
+        if ($user->isAdmin()) {
             return true;
         }
 
@@ -1959,7 +2069,7 @@ class ProductPolicy extends BasePolicy
     public function updatePrice(User $user, Product $product): bool
     {
         // Seuls les admins et managers peuvent modifier les prix
-        return in_array($user->profile, ['admin', 'manager']);
+        return $user->isAdmin() || $user->hasRole('manager');
     }
 }
 ```

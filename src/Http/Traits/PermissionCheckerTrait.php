@@ -118,25 +118,39 @@ trait PermissionCheckerTrait
 	}
 
 	/**
-	 * Vérifie si l'utilisateur est administrateur
-	 * 
+	 * Vérifie si l'utilisateur est administrateur (super-admin).
+	 *
+	 * Depuis la v4, l'admin n'est plus déterminé par un champ `profile` mais
+	 * par la présence d'une règle d'abilité « manage / all » — injectée
+	 * automatiquement par un rôle `is_super_admin` (trait HasRoles).
+	 *
 	 * @param object $connectedUser Utilisateur connecté
 	 * @return bool
 	 */
 	public function isAdmin($connectedUser)
 	{
-		return isset($connectedUser->profile) && $connectedUser->profile === 'admin';
+		if (!isset($connectedUser->ability_rules) || !is_array($connectedUser->ability_rules)) {
+			return false;
+		}
+
+		foreach ($connectedUser->ability_rules as $rule) {
+			if (in_array("all", (array) ($rule["subject"] ?? [])) && in_array("manage", (array) ($rule["action"] ?? []))) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
-	 * Vérifie si l'utilisateur a un profil spécifique
-	 * 
-	 * @param string $profile Profil à vérifier
+	 * Vérifie si l'utilisateur possède un rôle spécifique (par nom).
+	 *
+	 * @param string $role Nom du rôle à vérifier
 	 * @param object $connectedUser Utilisateur connecté
 	 * @return bool
 	 */
-	public function hasProfile($profile, $connectedUser)
+	public function hasRole($role, $connectedUser)
 	{
-		return isset($connectedUser->profile) && $connectedUser->profile === $profile;
+		return method_exists($connectedUser, 'hasRole') && $connectedUser->hasRole($role);
 	}
 }

@@ -23,13 +23,21 @@ class BasePolicy
 	protected $modelName = "";
 
 	/**
+	 * Abilities pour lesquelles le raccourci super-admin est suspendu quand
+	 * l'utilisateur connecté est la cible de l'action (ex : suppression de son
+	 * propre compte). La policy enfant peut surcharger cette liste.
+	 */
+	protected array $selfProtectedAbilities = ['delete', 'forceDelete'];
+
+	/**
 	 * Méthode appelée avant toutes les autres vérifications
-	 * 
+	 *
 	 * @param object $connectedUser Utilisateur connecté
 	 * @param string $ability Action demandée
+	 * @param mixed  ...$arguments Arguments supplémentaires (ex : le modèle ciblé)
 	 * @return Response|null
 	 */
-	public function before($connectedUser, string $ability)
+	public function before($connectedUser, string $ability, ...$arguments)
 	{
 		// Les super-administrateurs ont tous les droits.
 		// isAdmin() détecte la règle « manage / all » dans les ability_rules,
@@ -37,6 +45,18 @@ class BasePolicy
 		// « manage all ». (Auparavant, une comparaison tableau == "all" rendait
 		// ce raccourci inopérant — corrigé en v4.)
 		if ($this->isAdmin($connectedUser)) {
+			// Sécurité : pour les abilities destructives auto-ciblées, on laisse
+			// la policy enfant statuer (ex : un super-admin ne peut pas se supprimer
+			// lui-même si delete() l'interdit).
+			if (
+				in_array($ability, $this->selfProtectedAbilities)
+				&& isset($arguments[0])
+				&& $arguments[0] instanceof Model
+				&& $connectedUser->id === $arguments[0]->id
+			) {
+				return null;
+			}
+
 			return Response::allow();
 		}
 

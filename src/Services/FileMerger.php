@@ -92,8 +92,9 @@ class FileMerger
         // Fusionner les propriétés (priorité au stub)
         $mergedProperties = $this->mergeProperties($existingProperties, $stubProperties);
 
-        // Fusionner le constructeur (priorité au stub)
-        $mergedConstructor = $stubConstructor ?: $existingConstructor;
+        // Priorité à l'existant : si le développeur a personnalisé le constructeur,
+        // on le conserve ; le stub sert de fallback pour les nouveaux projets.
+        $mergedConstructor = $existingConstructor ?: $stubConstructor;
 
         // Fusionner les méthodes (priorité au stub)
         $mergedMethods = $this->mergeMethods($existingMethods, $stubMethods);
@@ -293,7 +294,9 @@ class FileMerger
             $trimmedLine = trim($line);
 
             // Détecter le début d'une propriété (avec ou sans docblock)
-            if (preg_match('/^(public|protected|private)\s+(?:static\s+)?(?:\?\w+\s+)?\$(\w+)/', $trimmedLine, $matches)) {
+            // La regex couvre : pas de type, type nullable (?Type), type non-nullable
+            // (string, array, SomeClass, \Full\Class), unions (int|string), readonly.
+            if (preg_match('/^(public|protected|private)\s+(?:static\s+)?(?:readonly\s+)?(?:\??[\w\\\\]+(?:\|[\w\\\\]+)*\s+)?\$(\w+)/', $trimmedLine, $matches)) {
                 $propertyName = $matches[2];
                 $propertyContent = '';
                 $docblock = '';
@@ -551,8 +554,10 @@ class FileMerger
      */
     protected function mergeMethods(array $existing, array $stub): array
     {
-        // Priorité au stub pour les conflits
-        return array_merge($existing, $stub);
+        // Priorité à l'existant : le stub n'est appliqué que pour les méthodes
+        // absentes du fichier existant. Évite d'écraser la logique métier
+        // ajoutée par le développeur (ex : __construct personnalisé).
+        return array_merge($stub, $existing);
     }
 
     /**

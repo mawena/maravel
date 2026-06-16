@@ -5,6 +5,41 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.1] - 2026-06-16
+
+### Corrigé
+
+- **`BasePolicy::before()` — bypass super-admin ignorait la cible de l'action (bug de sécurité)** :
+  La signature ne capturait pas `...$arguments` (le modèle ciblé passé par Laravel). Un super-admin
+  pouvait ainsi supprimer son propre compte via `DELETE /api/users/{son-id}` malgré la protection
+  présente dans `delete()` du stub `UserPolicy`, car `before()` renvoyait `allow()` avant même que
+  `delete()` soit appelé.
+  - La signature est désormais `before($connectedUser, string $ability, ...$arguments)`.
+  - Ajout de la propriété surchargeable `protected array $selfProtectedAbilities = ['delete', 'forceDelete']` :
+    pour les abilities listées, si la cible est le même utilisateur que l'utilisateur connecté,
+    `before()` retourne `null` et laisse la policy enfant statuer — même pour un super-admin.
+
+- **`FileMerger::extractClassProperties()` — propriétés typées non reconnues** :
+  La regex `/(?:\?\w+\s+)?/` ne capturait que les types nullables (`?Type`). Les types non-nullables
+  (`string`, `array`, `SomeClass`, `\Full\Class`, unions `int|string`) et le mot-clé `readonly`
+  étaient ignorés. Conséquence : ces propriétés disparaissaient silencieusement lors d'une
+  réexécution de `maravel:install` (elles n'étaient pas incluses dans `$existingProperties`).
+  La regex est étendue pour couvrir tous les types PHP : `(?:\??[\w\\]+(?:\|[\w\\]+)*\s+)?`.
+
+- **`FileMerger::mergeMethods()` — méthodes personnalisées écrasées par le stub** :
+  `array_merge($existing, $stub)` donnait priorité au stub, écrasant silencieusement toute
+  méthode modifiée par le développeur (notamment `__construct` enrichi avec des règles de
+  validation ou des closures RBAC). La priorité est désormais inversée : `array_merge($stub, $existing)`
+  — le stub sert de base et l'existant prend le dessus pour les conflits. Les nouvelles méthodes
+  introduites par le stub (absentes du fichier existant) continuent d'être ajoutées.
+
+- **`FileMerger::mergeUserController()` — constructeur personnalisé toujours écrasé** :
+  `$mergedConstructor = $stubConstructor ?: $existingConstructor` donnait systématiquement
+  priorité au stub dès qu'il possédait un constructeur. Désormais :
+  `$mergedConstructor = $existingConstructor ?: $stubConstructor` — le constructeur existant
+  (potentiellement personnalisé) est conservé ; le stub n'est utilisé qu'en l'absence de
+  constructeur dans le fichier cible.
+
 ## [4.0.0] - 2026-06-14
 
 ### Ajouté

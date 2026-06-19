@@ -306,30 +306,53 @@ class APIController extends BaseController
         if ($authName && !($authorisation = Gate::inspect($authName, $modelClass))->allowed()) {
             return $this->responseError(["auth" => [$authorisation->message()]], 403);
         }
+
+        DB::beginTransaction();
+        $result = $this->validateAndCreateModel($modelClass, $requestData, $validations, $validationsText, $manualValidations, $beforeCreate, $afterCreate, $beforeCommit);
+        if (isset($result["errors"])) {
+            DB::rollBack();
+            return $this->responseError($result["errors"], $result["status"]);
+        }
+        DB::commit();
+
+        ["model" => $model, "requestData" => $requestData, "manualValidationsData" => $manualValidationsData] = $result;
+        $model = ($afterCommit) ? $afterCommit($model, $requestData, $manualValidationsData) : $model;
+
+        $modelClassExploded = explode("\\", $modelClass);
+        $model = $relations ? $this->modelRelationLoad($model, $relations, end($modelClassExploded)) : $model;
+        return $this->responseOk([
+            lcfirst(end($modelClassExploded)) => $model
+        ], status: 201);
+    }
+
+    /**
+     * Valide et crée un model unique. Logique partagée par modelStore() et modelStoreMulty().
+     * @return array{errors: array, status: int}|array{model: \Illuminate\Database\Eloquent\Model, requestData: array, manualValidationsData: array}
+     */
+    private function validateAndCreateModel($modelClass, array $requestData, array $validations, array $validationsText, ?callable $manualValidations, ?callable $beforeCreate, ?callable $afterCreate, ?callable $beforeCommit): array
+    {
         $validator = Validator::make($requestData, $validations, $validationsText);
         if ($validator->fails()) {
-            return $this->responseError($validator->errors()->toArray(), 422);
+            return ["errors" => $validator->errors()->toArray(), "status" => 422];
         }
-        DB::beginTransaction();
-        $manualValidationsReturn = ($manualValidations) ? $manualValidations($requestData) : null;
-        if (isset($manualValidationsReturn["errors"])) {
-            if ($manualValidationsReturn["errors"]) {
-                DB::rollBack();
-                return $this->responseError($manualValidationsReturn["errors"], $manualValidationsReturn["status"] ?? 422);
+
+        try {
+            $manualValidationsReturn = ($manualValidations) ? $manualValidations($requestData) : null;
+            if (isset($manualValidationsReturn["errors"]) && $manualValidationsReturn["errors"]) {
+                return ["errors" => $manualValidationsReturn["errors"], "status" => $manualValidationsReturn["status"] ?? 422];
             }
+            $manualValidationsData = $manualValidationsReturn["data"] ?? [];
+
+            $requestData = ($beforeCreate) ? $beforeCreate($requestData, $manualValidationsData) : $requestData;
+            $model = call_user_func_array([$modelClass, 'create'], [$requestData]);
+            $model = ($afterCreate) ? $afterCreate($model, $requestData, $manualValidationsData) : $model;
+            $model = ($beforeCommit) ? $beforeCommit($model, $requestData, $manualValidationsData) : $model;
+
+            return ["model" => $model, "requestData" => $requestData, "manualValidationsData" => $manualValidationsData];
+        } catch (\Throwable $e) {
+            report($e);
+            return ["errors" => ["server" => ["Erreur du serveur"]], "status" => 500];
         }
-        $manualValidationsReturn["data"] = isset($manualValidationsReturn["data"]) ? $manualValidationsReturn["data"] : [];
-        $requestData = ($beforeCreate) ? $beforeCreate($requestData, $manualValidationsReturn["data"]) : $requestData;
-        $model = call_user_func_array([$modelClass, 'create'], [$requestData]);
-        $model = ($afterCreate) ? $afterCreate($model, $requestData, $manualValidationsReturn["data"]) : $model;
-        $modelClassExployed = explode("\\", $modelClass);
-        $model = ($beforeCommit) ? $beforeCommit($model, $requestData, $manualValidationsReturn["data"]) : $model;
-        DB::commit();
-        $model = ($afterCommit) ? $afterCommit($model, $requestData, $manualValidationsReturn["data"]) : $model;
-        $model = $relations ? $this->modelRelationLoad($model, $relations, end($modelClassExployed)) : $model;
-        return $this->responseOk([
-            lcfirst(end($modelClassExployed)) => $model
-        ], status: 201);
     }
 
     /**
@@ -352,32 +375,31 @@ class APIController extends BaseController
         if ($authName && !($authorisation = Gate::inspect($authName, $modelClass))->allowed()) {
             return $this->responseError(["auth" => [$authorisation->message()]], 403);
         }
-        $data = [];
+
+        $modelClassExploded = explode("\\", $modelClass);
+        $modelClassName = lcfirst(end($modelClassExploded));
+
+        $created = [];
         DB::beginTransaction();
         foreach ($requestDataArray as $requestData) {
-            $validator = Validator::make($requestData, $validations, $validationsText);
-            if ($validator->fails()) {
+            $result = $this->validateAndCreateModel($modelClass, $requestData, $validations, $validationsText, $manualValidations, $beforeCreate, $afterCreate, $beforeCommit);
+            if (isset($result["errors"])) {
                 DB::rollBack();
-                return $this->responseError($validator->errors()->toArray(), 422);
+                return $this->responseError($result["errors"], $result["status"]);
             }
-            $manualValidationsReturn = ($manualValidations) ? $manualValidations($requestData) : null;
-            if (isset($manualValidationsReturn["errors"])) {
-                if ($manualValidationsReturn["errors"]) {
-                    DB::rollBack();
-                    return $this->responseError($manualValidationsReturn["errors"], $manualValidationsReturn["status"] ?? 422);
-                }
-            }
-            $manualValidationsReturn["data"] = isset($manualValidationsReturn["data"]) ? $manualValidationsReturn["data"] : [];
-            $requestData = ($beforeCreate) ? $beforeCreate($requestData, $manualValidationsReturn["data"]) : $requestData;
-            $model = call_user_func_array([$modelClass, 'create'], [$requestData]);
-            $model = ($afterCreate) ? $afterCreate($model, $requestData, $manualValidationsReturn["data"]) : $model;
-            $modelClassExployed = explode("\\", $modelClass);
-            $model = ($beforeCommit) ? $beforeCommit($model, $requestData, $manualValidationsReturn["data"]) : $model;
-            $model = ($afterCommit) ? $afterCommit($model, $requestData, $manualValidationsReturn["data"]) : $model;
-            $model = $relations ? $this->modelRelationLoad($model, $relations, end($modelClassExployed)) : $model;
-            $data[] = [lcfirst(end($modelClassExployed)) => $model];
+            $created[] = $result;
         }
         DB::commit();
+
+        // afterCommit n'est déclenché qu'une fois tous les éléments réellement committés
+        $data = [];
+        foreach ($created as $result) {
+            ["model" => $model, "requestData" => $requestData, "manualValidationsData" => $manualValidationsData] = $result;
+            $model = ($afterCommit) ? $afterCommit($model, $requestData, $manualValidationsData) : $model;
+            $model = $relations ? $this->modelRelationLoad($model, $relations, end($modelClassExploded)) : $model;
+            $data[] = [$modelClassName => $model];
+        }
+
         return $this->responseOk($data, status: 201);
     }
 
@@ -404,27 +426,33 @@ class APIController extends BaseController
             if ($validator->fails()) {
                 return $this->responseError($validator->errors()->toArray(), 422);
             }
-            $modelClassExployed = explode("\\", $modelClass);
+            $modelClassExploded = explode("\\", $modelClass);
             $model = call_user_func_array([$modelClass, 'find'], [$modelId]);
-            $modelClassName = lcfirst(end($modelClassExployed));
+            $modelClassName = lcfirst(end($modelClassExploded));
             if ($model) {
                 if ($authName && !($authorisation = Gate::inspect($authName, $model))->allowed()) {
                     return $this->responseError(["auth" => [$authorisation->message()]], 403);
                 }
                 DB::beginTransaction();
-                $manualValidationsReturn = ($manualValidations) ? $manualValidations($requestData, $model) : null;
-                if (isset($manualValidationsReturn["errors"])) {
-                    if ($manualValidationsReturn["errors"]) {
-                        DB::rollBack();
-                        return $this->responseError($manualValidationsReturn["errors"], $manualValidationsReturn["status"] ?? 422);
+                try {
+                    $manualValidationsReturn = ($manualValidations) ? $manualValidations($requestData, $model) : null;
+                    if (isset($manualValidationsReturn["errors"])) {
+                        if ($manualValidationsReturn["errors"]) {
+                            DB::rollBack();
+                            return $this->responseError($manualValidationsReturn["errors"], $manualValidationsReturn["status"] ?? 422);
+                        }
                     }
+                    $manualValidationsReturn["data"] ??= [];
+                    $requestData = ($beforeUpdate) ? $beforeUpdate($model, $requestData, $manualValidationsReturn["data"]) : $requestData;
+                    $model->update($requestData);
+                    $model = (($afterUpdate) ? $afterUpdate($model, $requestData, $manualValidationsReturn["data"]) : $model) ?? $model;
+                    $model = ($beforeCommit) ? $beforeCommit($model, $requestData, $manualValidationsReturn["data"]) : $model;
+                    $model = $relations ? $this->modelRelationLoad($model, $relations, end($modelClassExploded)) : $model;
+                } catch (\Throwable $e) {
+                    DB::rollBack();
+                    report($e);
+                    return $this->responseError(["server" => ["Erreur du serveur"]], 500);
                 }
-                $manualValidationsReturn["data"] = isset($manualValidationsReturn["data"], $model) ? $manualValidationsReturn["data"] : [];
-                $requestData = ($beforeUpdate) ? $beforeUpdate($model, $requestData, $manualValidationsReturn["data"]) : $requestData;
-                $model->update($requestData);
-                $model = (($afterUpdate) ? $afterUpdate($model, $requestData, $manualValidationsReturn["data"]) : $model) ?? $model;
-                $model = ($beforeCommit) ? $beforeCommit($model, $requestData, $manualValidationsReturn["data"]) : $model;
-                $model = $relations ? $this->modelRelationLoad($model, $relations, end($modelClassExployed)) : $model;
                 DB::commit();
                 $model = ($afterCommit) ? $afterCommit($model, $requestData, $manualValidationsReturn["data"]) : $model;
                 return $this->responseOk([
@@ -450,9 +478,9 @@ class APIController extends BaseController
      */
     public function modelDelete(int $modelId, $modelClass, callable $manualValidations = null, callable $beforeDelete = null, callable $afterDelete = null, $authName = "delete", $elementName = "L'élément")
     {
-        $modelClassExployed = explode("\\", $modelClass);
+        $modelClassExploded = explode("\\", $modelClass);
         $model = call_user_func_array([$modelClass, 'find'], [$modelId]);
-        $modelClassName = lcfirst(end($modelClassExployed));
+        $modelClassName = lcfirst(end($modelClassExploded));
         if ($model) {
             if ($authName && !($authorisation = Gate::inspect($authName, $model))->allowed()) {
                 return $this->responseError(["auth" => [$authorisation->message()]], 403);
@@ -471,6 +499,76 @@ class APIController extends BaseController
         } else {
             return $this->responseError(["id" => ["$elementName n'existe pas"]], 404);
         }
+    }
+
+    /**
+     * Exécute une action "métier" qui ne correspond pas à un CRUD direct (ex: approuver, publier,
+     * changer un mot de passe, synchroniser une ressource externe...), avec la même rigueur que les
+     * méthodes modelStore/modelUpdate/modelDelete : vérification d'autorisation, validation, transaction
+     * sécurisée et réponse JSON standardisée.
+     *
+     * Contrat de retour de $action :
+     * - un tableau ["errors" => [...], "status" => 422]  → traité comme un échec métier (rollback + responseError)
+     * - une \Illuminate\Http\JsonResponse                → renvoyée telle quelle (cas particuliers : statut/format custom)
+     * - toute autre valeur                                → renvoyée via responseOk($valeur)
+     *
+     * @param 	string|null	$authName			Nom de la capacité Gate à vérifier (null = pas de vérification)
+     * @param 	callable	$action				La logique métier, signature : function(array $requestData)
+     * @param 	mixed		$authTarget			La cible passée à Gate::inspect (modèle, classe...), null si l'ability n'en a pas besoin
+     * @param 	array		$requestData		Les données de la requête
+     * @param 	array		$validations		Les règles de validation Laravel à appliquer à $requestData
+     * @param 	array		$validationsText	Messages d'erreurs personnalisés pour ces validations
+     * @param 	bool		$useTransaction		Si false, $action est exécutée sans transaction DB (actions en lecture pure)
+     * @return \Illuminate\Http\JsonResponse
+     */
+    protected function customAction(?string $authName, callable $action, mixed $authTarget = null, array $requestData = [], array $validations = [], array $validationsText = [], bool $useTransaction = true): \Illuminate\Http\JsonResponse
+    {
+        if ($authName) {
+            $authorisation = $authTarget !== null ? Gate::inspect($authName, $authTarget) : Gate::inspect($authName);
+            if (!$authorisation->allowed()) {
+                return $this->responseError(["auth" => [$authorisation->message()]], 403);
+            }
+        }
+
+        if ($validations) {
+            $validator = Validator::make($requestData, $validations, $validationsText);
+            if ($validator->fails()) {
+                return $this->responseError($validator->errors()->toArray(), 422);
+            }
+        }
+
+        if ($useTransaction) {
+            DB::beginTransaction();
+        }
+
+        try {
+            $result = $action($requestData);
+        } catch (\Throwable $e) {
+            if ($useTransaction) {
+                DB::rollBack();
+            }
+            report($e);
+            return $this->responseError(["server" => ["Erreur du serveur"]], 500);
+        }
+
+        if ($result instanceof \Illuminate\Http\JsonResponse) {
+            if ($useTransaction) {
+                DB::commit();
+            }
+            return $result;
+        }
+
+        if (is_array($result) && isset($result["errors"]) && $result["errors"]) {
+            if ($useTransaction) {
+                DB::rollBack();
+            }
+            return $this->responseError($result["errors"], $result["status"] ?? 422);
+        }
+
+        if ($useTransaction) {
+            DB::commit();
+        }
+        return $this->responseOk($result);
     }
 
     /**

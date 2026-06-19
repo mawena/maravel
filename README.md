@@ -1,6 +1,6 @@
 # Maravel
 
-![Version](https://img.shields.io/badge/version-4.0.1-blue.svg)
+![Version](https://img.shields.io/badge/version-4.0.2-blue.svg)
 ![PHP](https://img.shields.io/badge/php-%5E8.1%7C%5E8.2%7C%5E8.3%7C%5E8.4-777BB4.svg)
 ![Laravel](https://img.shields.io/badge/laravel-%5E10.0%7C%5E11.0%7C%5E12.0%7C%5E13.0-FF2D20.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -25,6 +25,7 @@
 - [Codes de statut HTTP (REST)](#codes-de-statut-http-rest)
 - [Système de permissions](#système-de-permissions)
 - [Hooks et callbacks](#hooks-et-callbacks)
+- [Actions personnalisées (non-CRUD)](#actions-personnalisées-non-crud)
 - [Exemples complets](#exemples-complets)
 - [Tests](#tests)
 - [Changelog](#changelog)
@@ -459,6 +460,7 @@ class ProductController extends APIController
 - `store_multiple(Request $request)` : Crée plusieurs ressources en une fois
 - `update(Request $request, $id)` : Met à jour une ressource
 - `destroy($id)` : Supprime une ressource
+- `customAction(...)` *(protected)* : exécute une action métier hors CRUD (autorisation, validation, transaction sécurisée, réponse standardisée) — voir [Actions personnalisées (non-CRUD)](#actions-personnalisées-non-crud)
 
 #### Gestion des uploads de gros fichiers
 
@@ -1887,6 +1889,87 @@ class ProductController extends APIController
         return $query;
     }
 }
+```
+
+---
+
+## Actions personnalisées (non-CRUD)
+
+Pour les endpoints qui ne correspondent pas à un CRUD direct — changer un mot de passe, approuver une
+ressource, synchroniser un service externe... — `customAction()` apporte la même rigueur que
+`modelStore()` / `modelUpdate()` / `modelDelete()` sans forcer la logique métier dans le cycle de vie
+CRUD (manualValidations / beforeX / afterX) :
+
+- Vérification d'autorisation via `Gate::inspect()`
+- Validation Laravel optionnelle
+- Transaction DB sécurisée, avec rollback automatique sur exception (activable/désactivable)
+- Réponse JSON standardisée (`responseOk()` / `responseError()`)
+
+### Signature
+
+```php
+protected function customAction(
+    ?string $authName,
+    callable $action,
+    mixed $authTarget = null,
+    array $requestData = [],
+    array $validations = [],
+    array $validationsText = [],
+    bool $useTransaction = true,
+): \Illuminate\Http\JsonResponse
+```
+
+### Contrat de retour de `$action`
+
+La closure `$action` reçoit `$requestData` et peut retourner :
+
+| Retour | Comportement |
+|---|---|
+| `['errors' => [...], 'status' => 422]` | Échec métier : rollback + `responseError()` |
+| une `\Illuminate\Http\JsonResponse` | Renvoyée telle quelle (statut/format personnalisé) |
+| toute autre valeur | Wrappée automatiquement dans `responseOk($valeur)` |
+
+### Exemple : changement de mot de passe
+
+```php
+public function update_password(Request $request)
+{
+    $user = $request->user();
+
+    return $this->customAction(
+        authName: "update_password",
+        authTarget: $user,
+        requestData: $request->all(),
+        validations: [
+            "old_password" => 'required|min:2',
+            "new_password" => 'required|min:8',
+            "new_password_confirmation" => 'required|min:8|same:new_password',
+        ],
+        action: function (array $requestData) use ($user) {
+            if (!Hash::check($requestData["old_password"], $user->password)) {
+                return [
+                    "errors" => ["old_password" => ["Ancien mot de passe incorrect"]],
+                    "status" => 400,
+                ];
+            }
+
+            $user->update(["password" => Hash::make($requestData["new_password"])]);
+            $user->tokens()->each(fn ($token) => $token->delete());
+
+            return ["user" => $user];
+        },
+    );
+}
+```
+
+### Action en lecture pure (sans transaction)
+
+```php
+return $this->customAction(
+    authName: "export",
+    action: fn () => ["url" => $this->generateExportUrl()],
+    useTransaction: false,
+);
 ```
 
 ---

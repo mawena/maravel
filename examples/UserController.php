@@ -231,10 +231,13 @@ class UserController extends APIController
 	 */
 	public function update_password(Request $request)
 	{
-		$model = $request->user();
-		return $this->modelUpdate(
-			modelId: $model->id,
-			modelClass: "App\Models\User",
+		$user = $request->user();
+
+		// update_password() n'est pas un CRUD direct : on utilise customAction() plutôt que
+		// modelUpdate(), ce qui évite d'éclater la logique entre manualValidations/beforeUpdate/afterUpdate.
+		return $this->customAction(
+			authName: "update_password",
+			authTarget: $user,
 			requestData: $request->all(),
 			validations: [
 				"old_password" => 'required|min:2',
@@ -244,36 +247,30 @@ class UserController extends APIController
 			validationsText: [
 				"same" => "Ce mot de passe est différent"
 			],
-			manualValidations: function ($requestData, $model) {
-				if ($requestData["old_password"] == $requestData["new_password"]) {
+			action: function (array $requestData) use ($user) {
+				if ($requestData["old_password"] === $requestData["new_password"]) {
 					return [
 						"errors" => ["new_password" => ["Le nouveau mot de passe doit être différent de l'ancien"]],
 						"status" => 400
 					];
 				}
-				if (Hash::check($requestData["old_password"], $model["password"])) {
+
+				if (!Hash::check($requestData["old_password"], $user->password)) {
 					return [
-						"data" => ["user" => $model]
-					];
-				} else {
-					return [
-						"errors" => ["old_password" => ["Ancien mot de passe incorect"]],
+						"errors" => ["old_password" => ["Ancien mot de passe incorrect"]],
 						"status" => 400
 					];
 				}
-			},
-			beforeUpdate: function ($model, $requestData) {
-				return [
+
+				$user->update([
 					"password" => Hash::make($requestData["new_password"]),
-					"password_change_required" => false
-				];
+					"password_change_required" => false,
+				]);
+
+				$user->tokens()->each(fn ($token) => $token->delete());
+
+				return ["user" => $user];
 			},
-			afterUpdate: function ($requestData) use ($model) {
-				$model->tokens()->each(function ($token, $key) {
-					$token->delete();
-				});
-			},
-			authName: "update_password"
 		);
 	}
 }

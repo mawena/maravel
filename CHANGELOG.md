@@ -5,6 +5,43 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.2] - 2026-06-19
+
+### Ajouté
+
+- **`APIController::customAction()`** — nouvelle méthode `protected` dédiée aux actions "métier" qui ne
+  correspondent pas à un CRUD direct (changement de mot de passe, approbation, synchronisation avec un
+  service externe...). Elle apporte à ces actions custom la même rigueur que `modelStore()` /
+  `modelUpdate()` / `modelDelete()` : vérification d'autorisation (`Gate::inspect()`), validation
+  Laravel optionnelle, transaction DB sécurisée (activable/désactivable via `$useTransaction`) et
+  réponse JSON standardisée. Contrat de retour de la closure `$action` : un tableau
+  `['errors' => [...], 'status' => ...]` pour un échec métier (rollback + `responseError()`), une
+  `\Illuminate\Http\JsonResponse` renvoyée telle quelle, ou toute autre valeur wrappée automatiquement
+  dans `responseOk()`.
+- **`examples/UserController.php::update_password()` réécrit** avec `customAction()` à la place de
+  `modelUpdate()`, pour illustrer l'usage ci-dessus.
+
+### Corrigé
+
+- **`modelStore()` / `modelStoreMulty()` / `modelUpdate()` — transaction laissée ouverte en cas
+  d'exception** : ces méthodes faisaient `DB::beginTransaction()` / `DB::commit()` sans `try/catch`.
+  Une exception levée pendant un hook (`beforeCreate`, `afterCreate`, `manualValidations`...) ou lors
+  de l'écriture en base laissait la transaction ouverte et l'exception remontait brute, sans réponse
+  JSON cohérente avec le reste de l'API. Chaque méthode encapsule désormais sa logique transactionnelle
+  dans un `try/catch (\Throwable)` : rollback, `report($e)`, puis
+  `responseError(["server" => ["Erreur du serveur"]], 500)`.
+- **`modelStore()` / `modelStoreMulty()` — duplication de logique** : `modelStoreMulty()` réimplémentait
+  presque intégralement le corps de `modelStore()` dans une boucle. Extraction dans une méthode privée
+  partagée `validateAndCreateModel()`.
+- **`modelStoreMulty()` — hook `afterCommit` appelé avant le commit réel** : lors d'une création par
+  lot, `afterCommit` s'exécutait pour chaque élément avant le `DB::commit()` global (qui n'intervient
+  qu'une fois, après la boucle). Un hook déclenchant un effet de bord supposant la donnée déjà
+  committée (job en queue, événement...) pouvait donc s'exécuter prématurément. `afterCommit` est
+  désormais appelé pour tous les éléments uniquement après le commit effectif.
+- **`modelUpdate()` — condition `isset(..., $model)` confuse** : le check
+  `isset($manualValidationsReturn["data"], $model)` testait inutilement `$model` (toujours vrai à cet
+  endroit, donc sans effet réel). Simplifié en `??=`.
+
 ## [4.0.1] - 2026-06-16
 
 ### Corrigé

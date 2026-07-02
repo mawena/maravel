@@ -68,6 +68,7 @@
 - `make:maravel.controller` : Génère un contrôleur API complet avec CRUD, validation, hooks
 - `make:maravel.model` : Génère un modèle avec ModelBase et formatage automatique
 - `make:maravel.policy` : Génère une policy avancée avec système de permissions
+- `make:maravel.permission` : Génère une permission RBAC versionnée (migration de données) + la méthode d'ability dans la policy
 - **Note** : Les commandes Laravel par défaut (`make:controller`, `make:model`, `make:policy`) restent disponibles
 
 ### ⚡ Traits réutilisables
@@ -1269,6 +1270,60 @@ php artisan make:maravel.policy ProductPolicy
 
 **Emplacement** : `App\Policies\ProductPolicy.php`
 
+#### make:maravel.permission
+
+Génère une nouvelle permission RBAC **comme on génère une migration** : la permission est versionnée dans Git et déployée sur chaque environnement via `php artisan migrate`, au lieu d'être créée à la main via l'API sur chaque base.
+
+Cas d'usage typique : le modèle `Product` et sa `ProductPolicy` existent déjà, et vous voulez ajouter une action métier `generate` :
+
+```bash
+php artisan make:maravel.permission generate Product
+
+# Avec libellé, description et rattachement à des rôles
+php artisan make:maravel.permission generate Product \
+    --label="Générer un produit" \
+    --description="Autorise la génération de produits" \
+    --role=manager --role=comptable
+
+# Sans toucher à la policy
+php artisan make:maravel.permission export Invoice --skip-policy
+```
+
+**Ce qui est généré** :
+
+1. **Une migration de données versionnée** — `database/migrations/{timestamp}_add_generate_product_permission.php` :
+   - `up()` insère la permission `(action: generate, subject: product)` si elle n'existe pas (idempotent), puis la rattache aux rôles passés via `--role` (les rôles inexistants sont ignorés) ;
+   - `down()` détache la permission du pivot `permission_role` puis la supprime ;
+   - les noms de tables sont résolus depuis `config('advanced-api-controller.rbac.tables.*')`.
+2. **La méthode d'ability dans la policy existante** — `App\Policies\ProductPolicy::generate()` est injectée automatiquement (si absente), avec ses imports. `Gate::inspect('generate', ...)` et `customAction('generate', ...)` fonctionnent donc immédiatement. Si la policy n'existe pas, un message vous invite à la créer avec `make:maravel.policy`.
+
+**Options disponibles** :
+- `--label=` : Libellé lisible de la permission
+- `--description=` : Description de la permission
+- `--role=*` : Nom(s) de rôle(s) auxquels rattacher la permission lors du `migrate` (répétable). Inutile pour un rôle `is_super_admin`, qui a déjà tous les droits
+- `--skip-policy` : Ne pas injecter la méthode d'ability dans la policy
+
+**Workflow complet** :
+
+```bash
+php artisan make:maravel.permission generate Product --role=manager
+php artisan migrate
+```
+
+Puis dans le contrôleur :
+
+```php
+public function generate(Request $request)
+{
+    return $this->customAction(
+        authName: 'generate',
+        authTarget: Product::class,
+        action: fn(array $data) => /* logique métier */,
+        requestData: $request->all(),
+    );
+}
+```
+
 #### Différence avec les commandes Laravel standard
 
 | Commande | Description |
@@ -1280,6 +1335,7 @@ php artisan make:maravel.policy ProductPolicy
 | `make:maravel.model` | Commande Maravel - génère un modèle avec ModelBase et formatage automatique |
 | `make:policy` | Commande Laravel standard - génère une policy basique |
 | `make:maravel.policy` | Commande Maravel - génère une policy avancée avec BasePolicy |
+| `make:maravel.permission` | **Commande unique Maravel** - génère une permission RBAC versionnée (migration de données) + méthode d'ability dans la policy |
 
 #### Exemples d'utilisation complète
 
@@ -1306,6 +1362,10 @@ php artisan make:maravel.model User -a -m
 # Workflow pour un modèle de blog complet
 php artisan make:maravel.model Post --all
 # Éditer la migration, puis :
+php artisan migrate
+
+# Ajouter plus tard une action métier (permission + méthode de policy)
+php artisan make:maravel.permission publish Post --role=editeur
 php artisan migrate
 ```
 
@@ -1734,6 +1794,17 @@ $user->ability_rules;                        // règles CASL calculées
 ```json
 { "action": "export", "subject": "invoice", "label": "Exporter les factures" }
 ```
+
+### Créer une permission versionnée (comme une migration)
+
+Créer une permission via l'API fonctionne, mais elle n'existe que dans la base courante. Pour qu'une permission soit **versionnée dans Git et déployée automatiquement** sur tous les environnements (comme une migration), utilisez la commande `make:maravel.permission` (v4.1+) :
+
+```bash
+php artisan make:maravel.permission generate Product --label="Générer un produit" --role=manager
+php artisan migrate
+```
+
+Elle génère une migration de données (insertion de la permission + rattachement aux rôles, réversible via `migrate:rollback`) et injecte la méthode `generate()` dans `ProductPolicy` si elle existe. Voir [make:maravel.permission](#makemaravelpermission) pour le détail.
 
 ### Vérification des permissions
 

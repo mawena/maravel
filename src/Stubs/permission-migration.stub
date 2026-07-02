@@ -1,0 +1,106 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Migration de permission générée par make:maravel.permission.
+ *
+ * Ajoute la permission « {{ action }} / {{ subject }} » au système RBAC.
+ * Versionnée comme une migration de schéma : elle s'applique avec
+ * `php artisan migrate` sur chaque environnement et se retire avec
+ * `php artisan migrate:rollback`.
+ */
+return new class extends Migration
+{
+    /**
+     * Permission à créer : couple (action, subject) — unique en base.
+     */
+    private string $action = '{{ action }}';
+    private string $subject = '{{ subject }}';
+    private ?string $label = {{ label }};
+    private ?string $description = {{ description }};
+
+    /**
+     * Rôles (par nom) auxquels rattacher la permission dès sa création.
+     * Les rôles inexistants au moment du migrate sont ignorés.
+     * NB : inutile pour un rôle is_super_admin, qui a déjà tous les droits.
+     */
+    private array $roles = {{ roles }};
+
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        $permissionsTable = config('advanced-api-controller.rbac.tables.permissions', 'permissions');
+
+        $existing = DB::table($permissionsTable)
+            ->where('action', $this->action)
+            ->where('subject', $this->subject)
+            ->first();
+
+        $permissionId = $existing->id ?? DB::table($permissionsTable)->insertGetId([
+            'action' => $this->action,
+            'subject' => $this->subject,
+            'label' => $this->label,
+            'description' => $this->description,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->attachToRoles($permissionId);
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        $permissionsTable = config('advanced-api-controller.rbac.tables.permissions', 'permissions');
+        $pivotTable = config('advanced-api-controller.rbac.tables.permission_role', 'permission_role');
+
+        $permission = DB::table($permissionsTable)
+            ->where('action', $this->action)
+            ->where('subject', $this->subject)
+            ->first();
+
+        if (!$permission) {
+            return;
+        }
+
+        DB::table($pivotTable)->where('permission_id', $permission->id)->delete();
+        DB::table($permissionsTable)->where('id', $permission->id)->delete();
+    }
+
+    /**
+     * Rattache la permission aux rôles listés dans $roles (pivot permission_role).
+     */
+    private function attachToRoles(int|string $permissionId): void
+    {
+        if (empty($this->roles)) {
+            return;
+        }
+
+        $rolesTable = config('advanced-api-controller.rbac.tables.roles', 'roles');
+        $pivotTable = config('advanced-api-controller.rbac.tables.permission_role', 'permission_role');
+
+        $roleIds = DB::table($rolesTable)->whereIn('name', $this->roles)->pluck('id');
+
+        foreach ($roleIds as $roleId) {
+            $alreadyAttached = DB::table($pivotTable)
+                ->where('permission_id', $permissionId)
+                ->where('role_id', $roleId)
+                ->exists();
+
+            if (!$alreadyAttached) {
+                DB::table($pivotTable)->insert([
+                    'permission_id' => $permissionId,
+                    'role_id' => $roleId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+    }
+};

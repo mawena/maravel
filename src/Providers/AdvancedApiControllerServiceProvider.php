@@ -8,6 +8,7 @@ use Maravel\Http\Middleware\FieldFilterMiddleware;
 use Maravel\Console\Commands\MakeController;
 use Maravel\Console\Commands\MakeModel;
 use Maravel\Console\Commands\MakePolicy;
+use Maravel\Console\Commands\MakePermission;
 use Maravel\Console\Commands\InstallCommand;
 
 class AdvancedApiControllerServiceProvider extends ServiceProvider
@@ -40,6 +41,7 @@ class AdvancedApiControllerServiceProvider extends ServiceProvider
 				MakeController::class,
 				MakeModel::class,
 				MakePolicy::class,
+				MakePermission::class,
 			]);
 		}
 	}

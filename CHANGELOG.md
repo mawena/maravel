@@ -5,6 +5,39 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-07-02
+
+### Ajouté
+
+- **Nouvelle commande `make:maravel.permission`** — génère une nouvelle permission RBAC *comme on
+  génère une migration*. Cas d'usage : le modèle `Product` et sa `ProductPolicy` existent déjà, et on
+  veut ajouter une action métier `generate` :
+
+  ```bash
+  php artisan make:maravel.permission generate Product --label="Générer un produit" --role=manager
+  ```
+
+  La commande produit deux choses :
+
+  1. **Une migration de données versionnée** (`database/migrations/{timestamp}_add_generate_product_permission.php`)
+     qui insère la permission `(action: generate, subject: product)` en base via `up()` (idempotente —
+     insertion uniquement si le couple action/subject n'existe pas) et la supprime proprement via
+     `down()` (détachement du pivot `permission_role` inclus). Comme toute migration, elle s'applique
+     sur chaque environnement avec `php artisan migrate` et se retire avec `migrate:rollback` — la
+     permission est donc versionnée dans Git et déployable, contrairement à une création manuelle via
+     `POST /api/permissions`. Les noms de tables sont résolus depuis
+     `config('advanced-api-controller.rbac.tables.*')`.
+  2. **L'injection de la méthode d'ability dans la policy existante** du modèle
+     (`App\Policies\ProductPolicy::generate()`), qui appelle `$this->check(['generate'], $this->modelName, ...)`.
+     `Gate::inspect('generate', Product::class)` et `customAction('generate', ...)` fonctionnent ainsi
+     immédiatement. L'injection est non-destructive : ignorée si la méthode existe déjà, avec ajout
+     automatique des imports manquants (`Response`, `Model`). Désactivable via `--skip-policy`.
+
+  Options : `--label=`, `--description=`, `--role=*` (rattache la permission aux rôles nommés lors du
+  `migrate` ; les rôles inexistants sont ignorés), `--skip-policy`. Garde-fous : action restreinte à un
+  identifiant PHP valide, doublon de migration détecté (couple action/subject déjà généré → warning,
+  pas de second fichier).
+
 ## [4.0.3] - 2026-06-19
 
 ### Ajouté

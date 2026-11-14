@@ -1,6 +1,6 @@
 # Maravel
 
-![Version](https://img.shields.io/badge/version-4.0.3-blue.svg)
+![Version](https://img.shields.io/badge/version-4.1.0-blue.svg)
 ![PHP](https://img.shields.io/badge/php-%5E8.1%7C%5E8.2%7C%5E8.3%7C%5E8.4-777BB4.svg)
 ![Laravel](https://img.shields.io/badge/laravel-%5E10.0%7C%5E11.0%7C%5E12.0%7C%5E13.0-FF2D20.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -2315,23 +2315,7 @@ $user->ability_rules = [
 
 ## Tests
 
-La librairie inclut des tests PHPUnit pour assurer la qualité du code.
-
-### Exécuter les tests
-
-```bash
-composer test
-```
-
-### Tests disponibles
-
-- Tests du contrôleur API (CRUD complet)
-- Tests des filtres (basiques, min/max, IN/NOT IN, etc.)
-- Tests de la pagination
-- Tests des relations
-- Tests de validation
-- Tests des permissions
-- Tests des hooks
+Le dépôt ne contient pas encore de suite de tests : le dossier `tests/` est absent et `composer.json` ne définit pas de script `composer test`. `phpunit/phpunit` et `orchestra/testbench` sont déclarés en dépendances de développement, et le workflow [`.github/workflows/tests.yml`](.github/workflows/tests.yml) prévoit d'exécuter `vendor/bin/phpunit tests/` (PHP 8.1 à 8.3, Laravel 10 et 11) dès qu'une suite existera. Le dossier [`examples/`](examples) fournit des exemples de contrôleurs, de modèles et de routes.
 
 ---
 
